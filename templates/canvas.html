@@ -1,0 +1,13 @@
+$def with (title, content)
+<html>
+<head>
+<title>$title</title>
+</head>
+<body>
+
+$:markdown(content)
+
+<a href="/~edit/$title">Edit</a>
+
+</body>
+</html>

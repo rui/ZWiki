@@ -1,0 +1,19 @@
+$def with (title, content)
+<html>
+<head>
+<title>Editing $title</title>
+</head>
+<body>
+
+<h1>Editing: $title</h1>
+
+<form method="POST" accept-charset="utf-8">
+<textarea name="content" cols="100" rows="20">$content</textarea>
+<br>
+<input type="submit" value="Update">
+</form>
+
+<p><a href="http://daringfireball.net/projects/markdown/syntax">Markdown Syntax</a></p>
+
+</body>
+</html>
