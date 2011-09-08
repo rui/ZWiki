@@ -5,3 +5,7 @@ dist/
 .DS_Store
 .hg
 .hgignore
+TODO.md
+.idea
+pages
+.ropeproject
