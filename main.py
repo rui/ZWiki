@@ -10,7 +10,7 @@ import istr
 osp = os.path
 PWD = osp.dirname(osp.realpath(__file__))
 wiki_dir = osp.join(PWD, "pages")
-recent_change_page_name = ".recent_change.md"
+recent_change_page_name = ".recent_change"
 
 urls = (
     '/', 'WikiIndex',
@@ -46,10 +46,16 @@ app.add_processor(web.loadhook(session_hook))
 class WikiIndex:
     def GET(self):
         recent_change = osp.join(wiki_dir, recent_change_page_name)
-        print "recent_change:", recent_change
         f = file(recent_change)
-        content = f.read()
+        buf = f.read()
         f.close()
+
+        lis = []
+        lines = buf.strip("\n").split("\n")
+        for i in lines:
+            url = osp.join("/", i)
+            lis.append('- [%s](%s)' % (i, url))
+            content = "\n".join(lis)
 
         title = "Index"
         return t_render.canvas(title, content)
@@ -60,9 +66,6 @@ class WikiPage:
         name = cgi.escape(name)
         title = istr.strip2(name, start_token=".md")
         title = title.rstrip("/")
-        
-        print "name:", name
-        print "title:", title
 
         filepath = osp.join(wiki_dir, title)
         filepath_with_suffix = "%s.md" % filepath
@@ -92,7 +95,6 @@ class WikiPage:
             return t_render.canvas(title, content)
 
         url = '/~edit/%s' % title
-        print "url:", url
         web.redirect(url)
 
 
@@ -159,7 +161,8 @@ class WikiEditor:
 
         web.utils.safewrite(filepath_with_suffix, content)
 
-        f = file(recent_change_page_name, "a")
+        recent_change_filepath = osp.join(wiki_dir, recent_change_page_name)
+        f = file(recent_change_filepath, "a")
         f.write(title + '\n')
         f.close()
 
@@ -168,9 +171,12 @@ class WikiEditor:
 
 
 if __name__ == "__main__":
-    recent_change = osp.join(wiki_dir, recent_change_page_name)
-    if not osp.exists(recent_change):
-        web.utils.safewrite(recent_change_page_name, "")
+    if not osp.exists(wiki_dir):
+        os.mkdir(wiki_dir)
+        
+    recent_change_filepath = osp.join(wiki_dir, recent_change_page_name)
+    if not osp.exists(recent_change_filepath):
+        web.utils.safewrite(recent_change_filepath, "")
     
     app = web.application(urls, globals())
     app.run()
