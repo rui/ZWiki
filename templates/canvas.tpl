@@ -2,8 +2,8 @@ $def with (title, content)
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-<meta charset="utf-8" />
-<title>$title</title>
+    <meta charset="utf-8" />
+    <title>$title</title>
 </head>
 <body>
 
@@ -15,9 +15,11 @@ $def with (title, content)
 
 <hr />
 
-<a href="/$title?action=edit">Edit</a>
-<a href="/$title?action=rename">Rename</a>
+<div id="toolbox">
 <a href="/$title?action=delete">Delete</a>
+<a href="/$title?action=rename">Rename</a>
+<a href="/$title?action=edit">Edit</a>
+</div>
 
 </body>
 </html>

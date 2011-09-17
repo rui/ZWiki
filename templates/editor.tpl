@@ -2,8 +2,8 @@ $def with (title, content)
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8" />
-<title>Editing $title</title>
+    <meta charset="utf-8" />
+    <title>Editing $title</title>
 </head>
 <body>
 
