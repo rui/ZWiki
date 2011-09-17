@@ -7,9 +7,17 @@ $def with (title, content)
 </head>
 <body>
 
-$:markdown(content)
+<div id="title">$title</div>
 
-<a href="/~edit/$title">Edit</a>
+<hr />
+
+<div id="content">$content</div>
+
+<hr />
+
+<a href="/$title?action=edit">Edit</a>
+<a href="/$title?action=rename">Rename</a>
+<a href="/$title?action=delete">Delete</a>
 
 </body>
 </html>
