@@ -1,22 +1,24 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+#-*- coding:utf-8 -*-
+
 import cgi
+import os
+import shutil
+
 import web
 from markdown import markdown
-import os
-import re
-import time
-import istr
+
+import utils
+import conf
+
 
 osp = os.path
-PWD = osp.dirname(osp.realpath(__file__))
-wiki_dir = osp.join(PWD, "pages")
-recent_change_page_name = ".recent_change"
+
+RECENT_CHANGE_FILENAME = ".recent_change"
 
 urls = (
     '/', 'WikiIndex',
-    '/~edit/([a-zA-Z_\-/.]+)', 'WikiEditor',
-    '/~([a-zA-Z0-9_\-/.]*)', 'SpecialWikiPage',
-    '/([a-zA-Z0-9_\-/.]*)', 'WikiPage',
+    '/([a-zA-Z0-9_\-/.]+)', 'WikiPage'
 )
 
 app = web.application(urls, globals())
@@ -24,159 +26,243 @@ app = web.application(urls, globals())
 #
 # template & session
 #
-if web.config.get('_session') is None:
-    session = web.session.Session(app, web.session.DiskStore('sessions'), initializer={"username": None})
+if web.config.get('_session') == None:
+    session = web.session.Session(app, web.session.DiskStore(conf.sessions_path), initializer={"username": None})
     web.config._session = session
 else:
     session = web.config._session
 
 t_globals = {
-    'markdown': markdown,
     'utils' : web.utils,
     "session" : session,
     "ctx" : web.ctx
     }
-t_render = web.template.render('templates', globals=t_globals)
+t_render = web.template.render(conf.templates_path, globals=t_globals)
 
 def session_hook():
     web.ctx.session = session
     web.template.Template.globals['session'] = session
 app.add_processor(web.loadhook(session_hook))
 
+
+def get_recent_change_content():
+    recent_change = osp.join(conf.wiki_dir, RECENT_CHANGE_FILENAME)
+    f = file(recent_change)
+    buf = f.read()
+    f.close()
+
+    lis = []
+    lines = web.utils.strips(buf, "\n").split("\n")
+    lines.reverse()
+    content = None
+
+    for i in lines:
+        url = osp.join("/", i)
+        lis.append('- [%s](%s)' % (i, url))
+        content = "\n".join(lis)
+
+    return content
+
+def update_recent_change_list(req_path, mode = "add", check = True):
+    recent_change_filepath = osp.join(conf.wiki_dir, RECENT_CHANGE_FILENAME)
+
+    f = file(recent_change_filepath)
+    old_pages = f.read().split('\n')
+    f.close()
+
+    if check:
+        old_pages = [i for i in old_pages if osp.exists(osp.join(conf.wiki_dir, "%s.md" % i))]
+
+
+    old_pages = utils.remove_item_from_list(old_pages, req_path)
+
+    if mode == "add":
+        old_pages.append(req_path)
+
+    new_content = '\n'.join(old_pages)
+    web.utils.safewrite(recent_change_filepath, new_content)
+
+
+def get_page_file_or_dir_fullpath_by_req_path(req_path):
+    if not req_path.endswith("/"):
+        return "%s.md" % osp.join(conf.wiki_dir, req_path)
+    else:
+        return osp.join(conf.wiki_dir, req_path)
+
+def get_dot_idx_content_by_fullpath(fullpath):
+    dot_idx_fullpath = osp.join(fullpath, ".index.md")
+    return utils.cat(dot_idx_fullpath)
+
+def get_page_file_list_by_fullpath(fullpath):
+    parent = osp.dirname(fullpath)
+    if osp.isdir(parent):
+        buf_list = os.listdir(parent)
+        return [web.utils.strips(i, ".md")
+                for i in buf_list
+                if not i.startswith('.')]
+    return []
+
+def get_page_file_list_content_by_fullpath(fullpath):
+    req_path = fullpath.replace(conf.wiki_dir, "")
+    page_file_list = get_page_file_list_by_fullpath(fullpath)
+    lis = []
+    for i in page_file_list:
+        link = osp.join("/", req_path, i)
+        title = link
+        lis.append('- [%s](%s)' % (title, link))
+    page_file_list_content = "\n".join(lis)
+    return page_file_list_content
+
+def delete_page_file_by_fullpath(fullpath):
+    if osp.isfile(fullpath):
+        os.remove(fullpath)
+        return True
+    elif osp.isdir(fullpath):
+        idx_dot_md = osp.join(fullpath, ".index.md")
+        os.remove(idx_dot_md)
+        return True
+    return False
+
+
 class WikiIndex:
     def GET(self):
-        recent_change = osp.join(wiki_dir, recent_change_page_name)
-        f = file(recent_change)
-        buf = f.read()
-        f.close()
+        title = "Recnet Changes"
+        content = get_recent_change_content()
+        return t_render.canvas(title, markdown(content))
 
-        lis = []
-        lines = buf.strip("\n").split("\n")
-        for i in lines:
-            url = osp.join("/", i)
-            lis.append('- [%s](%s)' % (i, url))
-            content = "\n".join(lis)
-
-        title = "Index"
-        return t_render.canvas(title, content)
     
-
 class WikiPage:
-    def GET(self, name):
-        name = cgi.escape(name)
-        title = istr.strip2(name, start_token=".md")
-        title = title.rstrip("/")
-
-        filepath = osp.join(wiki_dir, title)
-        filepath_with_suffix = "%s.md" % filepath
-
-        content = None
-        if osp.isfile(filepath_with_suffix):
-            f = file(filepath_with_suffix)
-            buf = f.read()
-            f.close()
-            content = markdown(web.utils.safeunicode(buf))
-        elif osp.isfile(filepath):
-            f = file(filepath)
-            buf = f.read()
-            f.close()
-            content = markdown(web.utils.safeunicode(buf))
-        elif osp.isdir(filepath):
-            files = os.listdir(filepath)
-            lis = []
-            for i in files:
-                if not i.startswith('.'):
-                    i = istr.strip2(i, '.md')
-                    url = osp.join("/", title, i)
-                    lis.append('- [%s](%s)' % (i, url))
-            content = "\n".join(lis)
-
-        if content:
-            return t_render.canvas(title, content)
-
-        url = '/~edit/%s' % title
-        web.redirect(url)
-
-
-class SpecialWikiPage:
-    def GET(self, name):
-        title = cgi.escape(name)
-        title = istr.strip2(title, ".md")
-        title = istr.strip2(title, "~")
-        special_prefix = '.'
-        filepath = osp.join(wiki_dir, "%s%s" % (special_prefix, title))
-        filepath_with_suffix = "%s.md" % filepath
-
-        content = None
-        if osp.isfile(filepath_with_suffix):
-            f = file(filepath_with_suffix)
-            buf = f.read()
-            f.close()
-            content = markdown(web.utils.safeunicode(buf))
-        elif osp.isfile(filepath):
-            f = file(filepath)
-            buf = f.read()
-            f.close()
-            content = markdown(web.utils.safeunicode(buf))
-
-        if content:
-            return t_render.canvas(title, content)
-
-        raise web.NotFound()
-
-
-class WikiEditor:
-    def GET(self, name):
-        title = cgi.escape(name)
-        title = istr.strip2(title, ".md")
-        filepath = osp.join(wiki_dir, title)
-        filepath_with_suffix = "%s.md" % filepath
-
-        content = ""
-        
-        if osp.isfile(filepath_with_suffix):
-            f = file(filepath_with_suffix)
-            content = f.read()
-            f.close()
-        elif osp.isfile(filepath):
-            f = file(filepath)
-            content = f.read()
-            f.close()
-
-        return t_render.editor(title, content)
-
-    def POST(self, name):
-        title = cgi.escape(name)
-        title = istr.strip2(title, ".md")
-        filepath = osp.join(wiki_dir, title)
-        filepath_with_suffix = "%s.md" % filepath
-
+    def GET(self, req_path):
+        req_path = cgi.escape(req_path)
         inputs = web.input()
+        action = inputs.get("action", "read")
+
+        if action and action not in ("edit", "read", "rename", "delete"):
+            raise web.BadRequest()
+
+        fullpath = get_page_file_or_dir_fullpath_by_req_path(req_path)
+        title = req_path
+
+        if action == "read":
+            if osp.isfile(fullpath):
+                content = utils.cat(fullpath)
+            elif osp.isdir(fullpath):
+                dot_idx_content = get_dot_idx_content_by_fullpath(fullpath)
+                page_file_list_content = get_page_file_list_content_by_fullpath(fullpath)
+                content = ""
+
+                if dot_idx_content:
+                    content = dot_idx_content
+                if page_file_list_content:
+                    content = "%s\n\n----\n%s" % (content, page_file_list_content)
+            else:
+                web.seeother("/%s?action=edit" % req_path)
+                return
+
+            return t_render.canvas(title, markdown(content))
+        elif action == "edit":
+            if osp.isfile(fullpath):
+                content = utils.cat(fullpath)
+            elif osp.isdir(fullpath):
+                content = get_dot_idx_content_by_fullpath(fullpath)
+            elif not osp.exists(fullpath):
+                content = ""
+            else:
+                raise Exception("unknow path")
+
+            return t_render.editor(title, content)
+        elif action == "rename":
+            if not osp.exists(fullpath):
+                raise web.NotFound()
+
+            return t_render.rename(req_path)
+        elif action == "delete":
+            if delete_page_file_by_fullpath(fullpath):
+                update_recent_change_list(req_path, mode="delete")
+                
+            web.seeother("/")
+            return
+        
+        raise web.BadRequest()
+
+    def POST(self, req_path):
+        req_path = cgi.escape(req_path)
+        inputs = web.input()
+        action = inputs.get("action")
+
+        if action and action not in ("edit", "rename"):
+            raise web.BadRequest()
+
         content = inputs.get("content")
         content = web.utils.safestr(content)
 
-        parent = osp.dirname(filepath_with_suffix)
+        """ NOTICE:
+            if req_path == `users/`,
+            fullpath will be `/path/to/users/`,
+            parent will be `/path/to/users`. """
+
+        fullpath = get_page_file_or_dir_fullpath_by_req_path(req_path)
+
+        parent = osp.dirname(fullpath)
         if not osp.exists(parent):
             os.makedirs(parent)
 
-        web.utils.safewrite(filepath_with_suffix, content)
+        if action == "edit":
+            if not osp.isdir(fullpath):
+                web.utils.safewrite(fullpath, content)
+            else:
+                idx_dot_md_fullpath = osp.join(fullpath, ".index.md")
+                web.utils.safewrite(idx_dot_md_fullpath, content)
 
-        recent_change_filepath = osp.join(wiki_dir, recent_change_page_name)
-        f = file(recent_change_filepath, "a")
-        f.write(title + '\n')
-        f.close()
+            update_recent_change_list(req_path)
+            web.seeother("/%s" % req_path)
+        elif action == "rename":
+            new_path = inputs.get("new_path")
+            if not new_path:
+                raise web.BadRequest()
 
-        url = osp.join("/", title)
+            old_fullpath = get_page_file_or_dir_fullpath_by_req_path(req_path)
+            if osp.isfile(old_fullpath):
+                new_fullpath = get_page_file_or_dir_fullpath_by_req_path(new_path)
+            elif osp.isdir(old_fullpath):
+                new_fullpath = osp.join(conf.wiki_dir, new_path)
+
+            if osp.exists(new_fullpath):
+                err_info = "Warning: The page foobar already exists."
+                return t_render.rename(req_path, err_info)
+
+            parent = osp.dirname(new_fullpath)
+            if not osp.exists(parent):
+                os.makedirs(parent)
+
+            shutil.move(old_fullpath, new_fullpath)
+            update_recent_change_list(req_path, mode="delete")
+            update_recent_change_list(new_path)
+
+            if osp.isfile(new_fullpath):
+                web.seeother("/%s" % new_path)
+            elif osp.isdir(new_fullpath):
+                web.seeother("/%s/" % new_path)
+
+            return
+
+        url = osp.join("/", req_path)
         web.redirect(url)
 
 
 if __name__ == "__main__":
-    if not osp.exists(wiki_dir):
-        os.mkdir(wiki_dir)
-        
-    recent_change_filepath = osp.join(wiki_dir, recent_change_page_name)
+    # Notice:
+    # you should remove datas/user.sqlite and sessions/* if you want a clean environment
+
+    if not osp.exists(conf.sessions_path):
+        os.mkdir(conf.sessions_path)
+
+    if not osp.exists(conf.wiki_dir):
+        os.mkdir(conf.wiki_dir)
+
+    recent_change_filepath = osp.join(conf.wiki_dir, RECENT_CHANGE_FILENAME)
     if not osp.exists(recent_change_filepath):
         web.utils.safewrite(recent_change_filepath, "")
-    
-    app = web.application(urls, globals())
+
+#	web.wsgi.runwsgi = lambda func, addr=None: web.wsgi.runfcgi(func, addr)
     app.run()
