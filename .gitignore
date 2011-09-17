@@ -9,3 +9,5 @@ TODO.md
 .idea
 pages
 .ropeproject
+docs/*.html
+sessions/*
