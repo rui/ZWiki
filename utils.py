@@ -1,4 +1,5 @@
 import os
+import platform
 import web
 
 osp = os.path
@@ -23,3 +24,33 @@ def cat(fullpath):
         buf = f.read()
         f.close()
         return web.utils.safeunicode(buf)
+
+def which(program, extra_paths=None):
+    # http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+    def is_exe(fpath):
+        return os.path.exists(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        paths = os.environ["PATH"].split(os.pathsep)
+        macport_bin_path = "/opt/local/bin"
+        if platform.system() == "Darwin" and osp.exists(macport_bin_path):
+            paths.insert(0, macport_bin_path)
+
+        if extra_paths:
+            extra_paths.extend(paths)
+            paths = extra_paths
+
+        for path in paths:
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
+
+if __name__ == "__main__":
+    if platform.system() == "Darwin":
+        assert which("tree") == "/opt/local/bin/tree"
