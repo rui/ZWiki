@@ -1,4 +1,4 @@
-$def with (title, content)
+$def with (title, content, toolbox=True)
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -15,11 +15,12 @@ $def with (title, content)
 
 <hr />
 
-<div id="toolbox">
-<a href="/$title?action=delete">Delete</a>
-<a href="/$title?action=rename">Rename</a>
-<a href="/$title?action=edit">Edit</a>
-</div>
+$if toolbox:
+    <div id="toolbox">
+    <a href="/$title?action=delete">Delete</a>
+    <a href="/$title?action=rename">Rename</a>
+    <a href="/$title?action=edit">Edit</a>
+    </div>
 
 </body>
 </html>

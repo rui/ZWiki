@@ -10,7 +10,22 @@ ZWiki is a lightweight wiki system implement in Python and web framework [web.py
 ## RUNTIME REQUIREMENTS
 
 - python 2.6+
-- web.py 0.36+
+
+- web.py 0.37+
+
+    If you install it by `easy_install web.py`,
+    you have to fix [issue #95](https://github.com/webpy/webpy/issues/95) by manual.
+
+    Strong recommend you install it from latest source:
+
+        git clone https://github.com/webpy/webpy.git
+        cd webpy.git
+        sudo python setup.py install
+
 - py-markdown 2.0.3+
 
+    On Mac OS X via MacPorts, `sudo port install py-markdown`
 
+- tree 1.5.3+, [homepage](http://mama.indstate.edu/users/ice/tree/)
+
+    On Mac OS X via MacPorts, `sudo port install tree`

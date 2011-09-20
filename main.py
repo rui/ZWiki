@@ -3,7 +3,10 @@
 
 import cgi
 import os
+import re
+import shlex
 import shutil
+import subprocess
 
 import web
 from markdown import markdown
@@ -15,10 +18,12 @@ import conf
 osp = os.path
 
 RECENT_CHANGE_FILENAME = ".recent_change"
+PAGE_FILE_INDEX_FILENAME = ".page_file_index"
 
 urls = (
     '/', 'WikiIndex',
-    '/([a-zA-Z0-9_\-/.]+)', 'WikiPage'
+    '/([a-zA-Z0-9_\-/.]+)', 'WikiPage',
+    '/~([a-zA-Z0-9_\-/.]+)', 'SpecialWikiPage',
 )
 
 app = web.application(urls, globals())
@@ -46,7 +51,7 @@ app.add_processor(web.loadhook(session_hook))
 
 
 def get_recent_change_content():
-    recent_change = osp.join(conf.wiki_dir, RECENT_CHANGE_FILENAME)
+    recent_change = osp.join(conf.pages_path, RECENT_CHANGE_FILENAME)
     f = file(recent_change)
     buf = f.read()
     f.close()
@@ -64,14 +69,14 @@ def get_recent_change_content():
     return content
 
 def update_recent_change_list(req_path, mode = "add", check = True):
-    recent_change_filepath = osp.join(conf.wiki_dir, RECENT_CHANGE_FILENAME)
+    recent_change_filepath = osp.join(conf.pages_path, RECENT_CHANGE_FILENAME)
 
     f = file(recent_change_filepath)
     old_pages = f.read().split('\n')
     f.close()
 
     if check:
-        old_pages = [i for i in old_pages if osp.exists(osp.join(conf.wiki_dir, "%s.md" % i))]
+        old_pages = [i for i in old_pages if osp.exists(osp.join(conf.pages_path, "%s.md" % i))]
 
 
     old_pages = utils.remove_item_from_list(old_pages, req_path)
@@ -85,9 +90,9 @@ def update_recent_change_list(req_path, mode = "add", check = True):
 
 def get_page_file_or_dir_fullpath_by_req_path(req_path):
     if not req_path.endswith("/"):
-        return "%s.md" % osp.join(conf.wiki_dir, req_path)
+        return "%s.md" % osp.join(conf.pages_path, req_path)
     else:
-        return osp.join(conf.wiki_dir, req_path)
+        return osp.join(conf.pages_path, req_path)
 
 def get_dot_idx_content_by_fullpath(fullpath):
     dot_idx_fullpath = osp.join(fullpath, ".index.md")
@@ -103,7 +108,7 @@ def get_page_file_list_by_fullpath(fullpath):
     return []
 
 def get_page_file_list_content_by_fullpath(fullpath):
-    req_path = fullpath.replace(conf.wiki_dir, "")
+    req_path = fullpath.replace(conf.pages_path, "")
     page_file_list = get_page_file_list_by_fullpath(fullpath)
     lis = []
     for i in page_file_list:
@@ -128,7 +133,7 @@ class WikiIndex:
     def GET(self):
         title = "Recnet Changes"
         content = get_recent_change_content()
-        return t_render.canvas(title, markdown(content))
+        return t_render.canvas(title, markdown(content), toolbox=False)
 
     
 class WikiPage:
@@ -225,7 +230,9 @@ class WikiPage:
             if osp.isfile(old_fullpath):
                 new_fullpath = get_page_file_or_dir_fullpath_by_req_path(new_path)
             elif osp.isdir(old_fullpath):
-                new_fullpath = osp.join(conf.wiki_dir, new_path)
+                new_fullpath = osp.join(conf.pages_path, new_path)
+            else:
+                raise Exception('unknow path')
 
             if osp.exists(new_fullpath):
                 err_info = "Warning: The page foobar already exists."
@@ -250,6 +257,74 @@ class WikiPage:
         web.redirect(url)
 
 
+def update_page_file_index():
+    """ ztree options:
+    -i : not print the indentation lines
+    -f : prints the full path prefix for each file
+    -P : List  only  those files that match the wild-card pattern
+    -t : Sort the output by last modification time instead of alphabetically
+    -L : Max display depth of the directory tree
+    -n : Turn colorization off always, over-ridden by the -C option
+    """
+    max_level = 4
+    obj_prefix = "''"
+    tree_fullpath = utils.which("tree", extra_paths=[osp.join(conf.PWD, 'bin')])
+    cmd = "%s -i -E %s -P '*.md' -t  -L %d -n %s" % \
+          (tree_fullpath, obj_prefix, max_level, conf.pages_path)
+    p_obj = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE)
+    p_obj.wait()
+    resp = p_obj.stdout.read().strip()
+
+    page_file_idx_fullpath = osp.join(conf.pages_path, PAGE_FILE_INDEX_FILENAME)
+    web.utils.safewrite(page_file_idx_fullpath, resp)
+
+def get_page_file_index(update=False):
+    if update:
+        update_page_file_index()
+
+    page_file_idx_fullpath = osp.join(conf.pages_path, PAGE_FILE_INDEX_FILENAME)
+    if not osp.exists(page_file_idx_fullpath):
+        update_page_file_index()
+
+    content = utils.cat(page_file_idx_fullpath)
+
+    lines = content.split(os.linesep)
+
+    # strip first line
+    # TODO: strip first line in ztree
+    lines = lines[1:]
+    latest_line = lines[-1]
+
+    p = '(\d+)\s+directories, (\d+)\s+files'
+    m_obj = re.match(p, latest_line)
+
+    if m_obj:
+        dires, files = m_obj.groups()
+        print "dires, files:", dires, files
+        lines = lines[:-2]
+
+    lis = []
+    for i in lines:
+        i = web.utils.strips(i, ".md")
+        url = osp.join("/", i)
+        lis.append('- [%s](%s)' % (i, url))
+        content = "\n".join(lis)
+
+    return markdown(content)
+
+special_path_mapping = {
+    'index' : get_page_file_index,
+}
+class SpecialWikiPage:
+    def GET(self, req_path):
+        f = special_path_mapping.get(req_path, None)
+        if callable(f):
+            content = f(True)
+            return t_render.canvas(title=req_path, content=content, toolbox=False)
+        else:
+            raise web.NotFound()
+
+
 if __name__ == "__main__":
     # Notice:
     # you should remove datas/user.sqlite and sessions/* if you want a clean environment
@@ -257,10 +332,10 @@ if __name__ == "__main__":
     if not osp.exists(conf.sessions_path):
         os.mkdir(conf.sessions_path)
 
-    if not osp.exists(conf.wiki_dir):
-        os.mkdir(conf.wiki_dir)
+    if not osp.exists(conf.pages_path):
+        os.mkdir(conf.pages_path)
 
-    recent_change_filepath = osp.join(conf.wiki_dir, RECENT_CHANGE_FILENAME)
+    recent_change_filepath = osp.join(conf.pages_path, RECENT_CHANGE_FILENAME)
     if not osp.exists(recent_change_filepath):
         web.utils.safewrite(recent_change_filepath, "")
 
