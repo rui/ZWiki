@@ -11,3 +11,5 @@ pages
 .ropeproject
 docs/*.html
 sessions/*
+*.html
+docs/*.html
