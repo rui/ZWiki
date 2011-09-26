@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#-*- coding:utf-8 -*-
 import os
 import re
 
@@ -7,9 +9,8 @@ osp = os.path
 
 
 def tree(top = '.', filters = None, output_prefix = None, max_level = 4, followlinks = False):
-    """
-    The Element of filters should be a callable object or is a byte array object of regular expression pattern.
-    """
+    # The Element of filters should be a callable object or
+    # is a byte array object of regular expression pattern.
     topdown = True
     total_directories = 0
     total_files = 0
