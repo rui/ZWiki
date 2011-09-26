@@ -13,17 +13,17 @@ from markdown import markdown
 
 import utils
 import conf
+import scripts
+import tree
 
 
 osp = os.path
 
-RECENT_CHANGE_FILENAME = ".recent_change"
-PAGE_FILE_INDEX_FILENAME = ".page_file_index"
 
 urls = (
     '/', 'WikiIndex',
-    '/([a-zA-Z0-9_\-/.]+)', 'WikiPage',
     '/~([a-zA-Z0-9_\-/.]+)', 'SpecialWikiPage',
+    ur'/([a-zA-Z0-9_\-/.%s]+)' % scripts.cjk.CJK_RANGE, 'WikiPage',
 )
 
 app = web.application(urls, globals())
@@ -51,7 +51,7 @@ app.add_processor(web.loadhook(session_hook))
 
 
 def get_recent_change_content():
-    recent_change = osp.join(conf.pages_path, RECENT_CHANGE_FILENAME)
+    recent_change = osp.join(conf.pages_path, conf.RECENT_CHANGE_FILENAME)
     f = file(recent_change)
     buf = f.read()
     f.close()
@@ -69,7 +69,8 @@ def get_recent_change_content():
     return content
 
 def update_recent_change_list(req_path, mode = "add", check = True):
-    recent_change_filepath = osp.join(conf.pages_path, RECENT_CHANGE_FILENAME)
+    req_path = web.utils.safestr(req_path)
+    recent_change_filepath = osp.join(conf.pages_path, conf.RECENT_CHANGE_FILENAME)
 
     f = file(recent_change_filepath)
     old_pages = f.read().split('\n')
@@ -84,7 +85,7 @@ def update_recent_change_list(req_path, mode = "add", check = True):
     if mode == "add":
         old_pages.append(req_path)
 
-    new_content = '\n'.join(old_pages)
+    new_content = web.utils.safestr('\n'.join(old_pages))
     web.utils.safewrite(recent_change_filepath, new_content)
 
 
@@ -129,13 +130,77 @@ def delete_page_file_by_fullpath(fullpath):
     return False
 
 
+def update_page_file_index():
+    max_level = 4
+    obj_prefix = "''"
+
+    ztree_fullpath = utils.which("ztree", extra_paths=[osp.join(conf.PWD, 'bin')])
+    if ztree_fullpath:
+        cmd = "%s -i -E %s -P '*\.md' -t  -L %d %s" % \
+              (ztree_fullpath, obj_prefix, max_level, conf.pages_path)
+        p_obj = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE)
+        p_obj.wait()
+        resp = p_obj.stdout.read().strip()
+    else:
+        is_md_p = "^([^.]+?)\.md$"
+        filters = [is_md_p]
+        resp = tree.tree(top = conf.pages_path, filters = filters, output_prefix = "''")
+
+    page_file_idx_fullpath = osp.join(conf.pages_path, conf.PAGE_FILE_INDEX_FILENAME)
+    web.utils.safewrite(page_file_idx_fullpath, resp)
+
+def get_page_file_index(update=False):
+    if update:
+        update_page_file_index()
+
+    page_file_idx_fullpath = osp.join(conf.pages_path, conf.PAGE_FILE_INDEX_FILENAME)
+    if not osp.exists(page_file_idx_fullpath):
+        update_page_file_index()
+
+    content = utils.cat(page_file_idx_fullpath)
+
+    lines = content.split(os.linesep)
+
+    # strip first line
+    lines = lines[1:]
+    latest_line = lines[-1]
+
+    p = '(\d+)\s+directories, (\d+)\s+files'
+    m_obj = re.match(p, latest_line)
+
+    if m_obj:
+#        dires, files = m_obj.groups()
+        # strip latest line
+        lines = lines[:-2]
+
+    lis = []
+    for i in lines:
+        i = web.utils.strips(i, ".md")
+        url = osp.join("/", i)
+        lis.append('- [%s](%s)' % (i, url))
+        content = "\n".join(lis)
+
+    return markdown(content)
+
+special_path_mapping = {
+    'index' : get_page_file_index,
+}
+
+
+class Test:
+    def GET(self, req_path):
+        print req_path
+        return ""
+
+
 class WikiIndex:
     def GET(self):
         title = "Recnet Changes"
         content = get_recent_change_content()
+        content = web.utils.safeunicode(content)
         return t_render.canvas(title, markdown(content), toolbox=False)
 
-    
+
 class WikiPage:
     def GET(self, req_path):
         req_path = cgi.escape(req_path)
@@ -184,10 +249,10 @@ class WikiPage:
         elif action == "delete":
             if delete_page_file_by_fullpath(fullpath):
                 update_recent_change_list(req_path, mode="delete")
-                
+
             web.seeother("/")
             return
-        
+
         raise web.BadRequest()
 
     def POST(self, req_path):
@@ -201,10 +266,8 @@ class WikiPage:
         content = inputs.get("content")
         content = web.utils.safestr(content)
 
-        """ NOTICE:
-            if req_path == `users/`,
-            fullpath will be `/path/to/users/`,
-            parent will be `/path/to/users`. """
+        # NOTICE: if req_path == `users/`, fullpath will be `/path/to/users/`,
+        # parent will be `/path/to/users`.
 
         fullpath = get_page_file_or_dir_fullpath_by_req_path(req_path)
 
@@ -257,69 +320,21 @@ class WikiPage:
         web.redirect(url)
 
 
-def update_page_file_index():
-    """ ztree options:
-    -i : not print the indentation lines
-    -f : prints the full path prefix for each file
-    -P : List  only  those files that match the wild-card pattern
-    -t : Sort the output by last modification time instead of alphabetically
-    -L : Max display depth of the directory tree
-    -n : Turn colorization off always, over-ridden by the -C option
-    """
-    max_level = 4
-    obj_prefix = "''"
-    tree_fullpath = utils.which("tree", extra_paths=[osp.join(conf.PWD, 'bin')])
-    cmd = "%s -i -E %s -P '*.md' -t  -L %d -n %s" % \
-          (tree_fullpath, obj_prefix, max_level, conf.pages_path)
-    p_obj = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE)
-    p_obj.wait()
-    resp = p_obj.stdout.read().strip()
-
-    page_file_idx_fullpath = osp.join(conf.pages_path, PAGE_FILE_INDEX_FILENAME)
-    web.utils.safewrite(page_file_idx_fullpath, resp)
-
-def get_page_file_index(update=False):
-    if update:
-        update_page_file_index()
-
-    page_file_idx_fullpath = osp.join(conf.pages_path, PAGE_FILE_INDEX_FILENAME)
-    if not osp.exists(page_file_idx_fullpath):
-        update_page_file_index()
-
-    content = utils.cat(page_file_idx_fullpath)
-
-    lines = content.split(os.linesep)
-
-    # strip first line
-    # TODO: strip first line in ztree
-    lines = lines[1:]
-    latest_line = lines[-1]
-
-    p = '(\d+)\s+directories, (\d+)\s+files'
-    m_obj = re.match(p, latest_line)
-
-    if m_obj:
-        dires, files = m_obj.groups()
-        print "dires, files:", dires, files
-        lines = lines[:-2]
-
-    lis = []
-    for i in lines:
-        i = web.utils.strips(i, ".md")
-        url = osp.join("/", i)
-        lis.append('- [%s](%s)' % (i, url))
-        content = "\n".join(lis)
-
-    return markdown(content)
-
-special_path_mapping = {
-    'index' : get_page_file_index,
-}
 class SpecialWikiPage:
     def GET(self, req_path):
-        f = special_path_mapping.get(req_path, None)
+        f = special_path_mapping.get(req_path)
+        inputs = web.input()
+        action = inputs.get("action")
+        
         if callable(f):
-            content = f(True)
+            if req_path == "index":
+                if action == "update":
+                    content = f(True)
+                else:
+                    content = f()
+            else:
+                content = f()
+            content = web.utils.safeunicode(content)
             return t_render.canvas(title=req_path, content=content, toolbox=False)
         else:
             raise web.NotFound()
@@ -335,7 +350,7 @@ if __name__ == "__main__":
     if not osp.exists(conf.pages_path):
         os.mkdir(conf.pages_path)
 
-    recent_change_filepath = osp.join(conf.pages_path, RECENT_CHANGE_FILENAME)
+    recent_change_filepath = osp.join(conf.pages_path, conf.RECENT_CHANGE_FILENAME)
     if not osp.exists(recent_change_filepath):
         web.utils.safewrite(recent_change_filepath, "")
 

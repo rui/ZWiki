@@ -5,7 +5,7 @@ import web
 osp = os.path
 
 def safewrite(filename, content, mode = 'w'):
-    """Writes the content to a temp file and then moves the temp file to
+    """ Writes the content to a temp file and then moves the temp file to
     given filename to avoid overwriting the existing file in case of errors.
     """
     f = file(filename + '.tmp', mode)
@@ -19,6 +19,7 @@ def remove_item_from_list(a_list, item):
 
 
 def cat(fullpath):
+    fullpath = web.utils.safeunicode(fullpath)
     if osp.isfile(fullpath):
         f = file(fullpath)
         buf = f.read()
