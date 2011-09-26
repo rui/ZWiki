@@ -23,12 +23,13 @@ import re
 
 
 def tracwiki2markdown(text):
-    alias_p = '[a-zA-Z0-9#\-\+ \.]'
-    shebang_p = '(?:\s*#!%s{1,21}\s*?)' % alias_p
-    code_p = "^\{\{\{%s([^\r\f\v]+?)\}\}\}" % shebang_p
-#    text = re.sub(code_p, '`\\1`', text)
-    code_p_obj = re.compile(code_p, re.MULTILINE)
-    text = code_p_obj.sub('`\\1`', text)
+    # TODO: add table filter
+
+#    alias_p = '[a-zA-Z0-9#\-\+ \.]'
+#    shebang_p = '(?:\s*#!%s{1,21}\s*?)' % alias_p
+#    code_p = "^\{\{\{%s([^\r\f\v]+?)\}\}\}" % shebang_p
+#    code_p_obj = re.compile(code_p, re.MULTILINE)
+#    text = code_p_obj.sub('`\\1`', text)
 
     h6_p = "^======\s(.+?)\s======"
 #    text = re.sub(h6_p, '###### \\1', text)
@@ -103,12 +104,27 @@ def tracwiki2markdown(text):
     super_script_p_obj = re.compile(super_script_p)
     text = super_script_p_obj.sub("<sub>\\1</sub>", text)
 
-    img_p = r"\[\[Image\(([^,]+?),.+\)\]\]"
+
+    def img_url_repl(matchobj):
+        groups = matchobj.groups(0)
+        args = [i.strip() for i in groups[0].split(',')]
+        url = args[0]
+        if url.startswith("wiki:"):
+            img_url = re.match(r"wiki:(?:[^:]+?):(.+)", url).groups()[0]
+            return '![alt](%s)' % img_url
+
+        return '![alt](\\1)'
+
+    img_p = r"\[\[Image\((.+?)\)\]\]"
     img_p_obj = re.compile(img_p, re.MULTILINE)
-    text = img_p_obj.sub('![alt](\\1)', text)
+    text = img_p_obj.sub(img_url_repl, text)
 
 
 #    text = re.sub("^\s\*", '*', text)
 #    text = re.sub("^\s\d\.", '1.', text)
 
     return text
+
+
+if __name__ == "__main__":
+    pass
