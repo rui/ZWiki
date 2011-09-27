@@ -9,13 +9,13 @@ import shutil
 import subprocess
 
 import web
-from markdown import markdown
+from markdown import markdown as _markdown
 
 import utils
 import conf
 import scripts
 import tree
-
+import markdown_utils
 
 osp = os.path
 
@@ -48,6 +48,13 @@ def session_hook():
     web.ctx.session = session
     web.template.Template.globals['session'] = session
 app.add_processor(web.loadhook(session_hook))
+
+
+
+def markdown(text, static_file_prefix = None):
+    if static_file_prefix is not None:
+        text = markdown_utils.fixed_static_file_url(text, static_file_prefix)
+    return _markdown(text)
 
 
 def get_recent_change_content():
@@ -105,7 +112,7 @@ def get_page_file_list_by_fullpath(fullpath):
         buf_list = os.listdir(parent)
         return [web.utils.strips(i, ".md")
                 for i in buf_list
-                if not i.startswith('.')]
+                    if not i.startswith('.') and i.endswith(".md")]
     return []
 
 def get_page_file_list_content_by_fullpath(fullpath):
@@ -187,6 +194,11 @@ special_path_mapping = {
 }
 
 
+def search(keywords):
+    pass
+
+
+
 class Test:
     def GET(self, req_path):
         print req_path
@@ -198,7 +210,8 @@ class WikiIndex:
         title = "Recnet Changes"
         content = get_recent_change_content()
         content = web.utils.safeunicode(content)
-        return t_render.canvas(title, markdown(content), toolbox=False)
+        static_file_prefix = "/static/pages"
+        return t_render.canvas(title, markdown(content, static_file_prefix), toolbox=False)
 
 
 class WikiPage:
@@ -216,6 +229,8 @@ class WikiPage:
         if action == "read":
             if osp.isfile(fullpath):
                 content = utils.cat(fullpath)
+
+                static_file_prefix = osp.join("/static/pages", osp.dirname(req_path))
             elif osp.isdir(fullpath):
                 dot_idx_content = get_dot_idx_content_by_fullpath(fullpath)
                 page_file_list_content = get_page_file_list_content_by_fullpath(fullpath)
@@ -225,11 +240,15 @@ class WikiPage:
                     content = dot_idx_content
                 if page_file_list_content:
                     content = "%s\n\n----\n%s" % (content, page_file_list_content)
+
+                static_file_prefix = osp.join("/static/pages", req_path)
+                print "static_file_prefix:", static_file_prefix
             else:
                 web.seeother("/%s?action=edit" % req_path)
                 return
 
-            return t_render.canvas(title, markdown(content))
+            print "static_file_prefix:", static_file_prefix
+            return t_render.canvas(title, markdown(content, static_file_prefix))
         elif action == "edit":
             if osp.isfile(fullpath):
                 content = utils.cat(fullpath)
