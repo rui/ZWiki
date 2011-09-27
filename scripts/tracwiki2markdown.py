@@ -110,8 +110,10 @@ def tracwiki2markdown(text):
         args = [i.strip() for i in groups[0].split(',')]
         url = args[0]
         if url.startswith("wiki:"):
-            img_url = re.match(r"wiki:(?:[^:]+?):(.+)", url).groups()[0]
-            return '![alt](%s)' % img_url
+            img_match_obj = re.match(r"wiki:(?:[^:]+?):(.+)", url)
+            if img_match_obj:
+                img_url = img_match_obj.groups()[0]
+                return '![alt](%s)' % img_url
 
         return '![alt](\\1)'
 
