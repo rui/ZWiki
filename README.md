@@ -25,7 +25,3 @@ ZWiki is a lightweight wiki system implement in Python and web framework [web.py
 - py-markdown 2.0.3+
 
     On Mac OS X via MacPorts, `sudo port install py-markdown`
-
-- tree 1.5.3+, [homepage](http://mama.indstate.edu/users/ice/tree/)
-
-    On Mac OS X via MacPorts, `sudo port install tree`
