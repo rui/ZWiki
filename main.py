@@ -183,26 +183,28 @@ def search(keywords):
     """
     find_by_content_matched = " \| ".join(keywords.split())
     find_by_filename_matched = " -o -name ".join([" '*%s*' " % i for i in keywords.split()])
-    if keywords.find("\|") != -1:
+    if find_by_content_matched.find("\|") != -1:
         find_by_content_cmd = "cd %s; grep ./ -r -e ' \(%s\) ' | awk -F ':' '{print $1}' | uniq" % \
                               (conf.pages_path, find_by_content_matched)
-        find_by_filename_cmd = "cd %s; find . \( -name %s \)" % (conf.pages_path, find_by_filename_matched)
+        find_by_filename_cmd = "cd %s; find . \( -name %s \) | grep '.md' " % (conf.pages_path, find_by_filename_matched)
     else:
         find_by_content_cmd = "cd %s; grep ./ -r -e ' %s ' | awk -F ':' '{print $1}' | uniq" % \
                               (conf.pages_path, find_by_content_matched)
-        find_by_filename_cmd = "cd %s; find . -name %s" % (conf.pages_path, find_by_filename_matched)
+        find_by_filename_cmd = "cd %s; find . -name %s | grep '.md' " % (conf.pages_path, find_by_filename_matched)
 
     print "find_by_content_cmd:"
     print find_by_content_cmd
     print "find_by_filename_cmd:"
     print find_by_filename_cmd
 
-    matched_content_lines = os.popen(find_by_content_cmd).read().strip().split("\n")
-    matched_filename_lines = os.popen(find_by_filename_cmd).read().strip().split("\n")
-#    if "''" in matched_content_lines:
-#        matched_content_lines.remove('')
-#    if "''" in matched_filename_lines:
-#        matched_filename_lines.remove('')
+    matched_content_lines = os.popen(find_by_content_cmd).read().strip()
+    if matched_content_lines:
+        matched_content_lines = matched_content_lines.split("\n")
+
+    matched_filename_lines = os.popen(find_by_filename_cmd).read().strip()
+    if matched_filename_lines:
+        matched_filename_lines = matched_filename_lines.split("\n")
+        
 #    print "matched_content_lines:", matched_content_lines
 #    print "matched_filename_lines:", matched_filename_lines
 
@@ -213,7 +215,9 @@ def search(keywords):
         mixed = matched_content_lines
     elif not matched_content_lines  and matched_filename_lines:
         mixed = matched_filename_lines
-    
+    else:
+        mixed = ""
+        
     return mixed
 
 special_path_mapping = {
@@ -385,8 +389,10 @@ class SpecialWikiPage:
             matched_file_list = [web.utils.strips(i, "./") for i in matched_lines]
 
             lis = []
+            content = ""
             for i in matched_file_list:
                 i = web.utils.strips(i, ".md")
+                i = web.utils.safeunicode(i)
                 url = osp.join("/", i)
                 lis.append('- [%s](%s)' % (i, url))
                 content = "\n".join(lis)
