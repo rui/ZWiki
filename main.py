@@ -3,7 +3,9 @@
 import cgi
 import os
 import re
+import shlex
 import shutil
+import subprocess
 
 import web
 
@@ -136,7 +138,6 @@ def update_page_file_index():
                      max_level = max_level, output_prefix = output_prefix)
 
     page_file_idx_fullpath = osp.join(conf.pages_path, conf.PAGE_FILE_INDEX_FILENAME)
-    print "page_file_idx_fullpath:", page_file_idx_fullpath
     web.utils.safewrite(page_file_idx_fullpath, resp)
 
 def get_page_file_index(update=False):
@@ -172,20 +173,27 @@ def get_page_file_index(update=False):
 
     return zmarkdown_utils.markdown(content)
 
+def search(keywords):
+    """
+    http://stackoverflow.com/questions/89228/how-to-call-external-command-in-python
+
+    p_obj = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE)
+    p_obj.wait()
+    resp = p_obj.stdout.read().strip()
+    """
+    matched = " \| ".join(keywords.split())
+    if keywords.find("\|") != -1:
+        cmd = "cd %s; grep ./ -r -e ' \(%s\) ' | awk -F ':' '{print $1}' | uniq" % (conf.pages_path, matched)
+    else:
+        cmd = "cd %s; grep ./ -r -e ' %s ' | awk -F ':' '{print $1}' | uniq" % (conf.pages_path, matched)
+
+    matched_lines = os.popen(cmd).read().strip().split("\n")
+    return matched_lines
+
 special_path_mapping = {
     'index' : get_page_file_index,
+    's' : search,
 }
-
-
-def search(keywords):
-    pass
-
-
-
-class Test:
-    def GET(self, req_path):
-        print req_path
-        return ""
 
 
 class WikiIndex:
@@ -225,7 +233,6 @@ class WikiPage:
                     content = "%s\n\n----\n%s" % (content, page_file_list_content)
 
                 static_file_prefix = osp.join("/static/pages", req_path)
-                print "static_file_prefix:", static_file_prefix
             else:
                 web.seeother("/%s?action=edit" % req_path)
                 return
@@ -328,21 +335,40 @@ class SpecialWikiPage:
     def GET(self, req_path):
         f = special_path_mapping.get(req_path)
         inputs = web.input()
-        action = inputs.get("action")
-        
+
         if callable(f):
             if req_path == "index":
+                action = inputs.get("action")
                 if action == "update":
                     content = f(True)
                 else:
                     content = f()
-            else:
-                content = f()
-            content = web.utils.safeunicode(content)
-            return t_render.canvas(title=req_path, content=content, toolbox=False)
+                    
+                content = web.utils.safeunicode(content)
+                return t_render.canvas(title=req_path, content=content, toolbox=False)
+    
+        raise web.NotFound()
+
+    def POST(self, req_path):
+        f = special_path_mapping.get(req_path)
+        inputs = web.input()
+
+        if callable(f):
+            keywords = inputs.get("k")
+            matched_lines = search(keywords)
+            matched_file_list = [web.utils.strips(i, "./") for i in matched_lines]
+
+            lis = []
+            for i in matched_file_list:
+                i = web.utils.strips(i, ".md")
+                url = osp.join("/", i)
+                lis.append('- [%s](%s)' % (i, url))
+                content = "\n".join(lis)
+
+            content = zmarkdown_utils.markdown(content)
+            return t_render.search(keywords=keywords, content=content)
         else:
             raise web.NotFound()
-
 
 if __name__ == "__main__":
     # Notice:

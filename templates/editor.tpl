@@ -7,6 +7,7 @@ $def with (title, content)
 </head>
 <body>
 
+
 <h2>Editing: $title</h2>
 
 <div id="form">
@@ -16,7 +17,9 @@ $def with (title, content)
     </form>
 </div>
 
+
 <p><a href="http://daringfireball.net/projects/markdown/syntax">Markdown Syntax</a></p>
+
 
 </body>
 </html>
