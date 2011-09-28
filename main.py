@@ -181,14 +181,40 @@ def search(keywords):
     p_obj.wait()
     resp = p_obj.stdout.read().strip()
     """
-    matched = " \| ".join(keywords.split())
+    find_by_content_matched = " \| ".join(keywords.split())
+    find_by_filename_matched = " -o -name ".join([" '*%s*' " % i for i in keywords.split()])
     if keywords.find("\|") != -1:
-        cmd = "cd %s; grep ./ -r -e ' \(%s\) ' | awk -F ':' '{print $1}' | uniq" % (conf.pages_path, matched)
+        find_by_content_cmd = "cd %s; grep ./ -r -e ' \(%s\) ' | awk -F ':' '{print $1}' | uniq" % \
+                              (conf.pages_path, find_by_content_matched)
+        find_by_filename_cmd = "cd %s; find . \( -name %s \)" % (conf.pages_path, find_by_filename_matched)
     else:
-        cmd = "cd %s; grep ./ -r -e ' %s ' | awk -F ':' '{print $1}' | uniq" % (conf.pages_path, matched)
+        find_by_content_cmd = "cd %s; grep ./ -r -e ' %s ' | awk -F ':' '{print $1}' | uniq" % \
+                              (conf.pages_path, find_by_content_matched)
+        find_by_filename_cmd = "cd %s; find . -name %s" % (conf.pages_path, find_by_filename_matched)
 
-    matched_lines = os.popen(cmd).read().strip().split("\n")
-    return matched_lines
+    print "find_by_content_cmd:"
+    print find_by_content_cmd
+    print "find_by_filename_cmd:"
+    print find_by_filename_cmd
+
+    matched_content_lines = os.popen(find_by_content_cmd).read().strip().split("\n")
+    matched_filename_lines = os.popen(find_by_filename_cmd).read().strip().split("\n")
+#    if "''" in matched_content_lines:
+#        matched_content_lines.remove('')
+#    if "''" in matched_filename_lines:
+#        matched_filename_lines.remove('')
+#    print "matched_content_lines:", matched_content_lines
+#    print "matched_filename_lines:", matched_filename_lines
+
+    if matched_content_lines and matched_filename_lines:
+        mixed = set(matched_content_lines)
+        mixed.update(matched_filename_lines)
+    elif matched_content_lines and not matched_filename_lines:
+        mixed = matched_content_lines
+    elif not matched_content_lines  and matched_filename_lines:
+        mixed = matched_filename_lines
+    
+    return mixed
 
 special_path_mapping = {
     'index' : get_page_file_index,
