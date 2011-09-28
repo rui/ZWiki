@@ -14,12 +14,15 @@ def cat(path):
     f.close()
     return c
 
+def compile():
+    files = os.listdir(PWD)
+    mds = [i for i in files if i.endswith(".md")]
 
-files = os.listdir(PWD)
-mds = [i for i in files if i.endswith(".md")]
+    for i in mds:
+        c = markdown.markdown(cat(osp.join(PWD, i)))
+        md_filename = osp.basename(i)
+        output_filename = md_filename.replace(".md", ".html")
+        web.utils.safewrite(osp.join(PWD, output_filename), c)
 
-for i in mds:
-    c = markdown.markdown(cat(osp.join(PWD, i)))
-    md_filename = osp.basename(i)
-    output_filename = md_filename.replace(".md", ".html")
-    web.utils.safewrite(osp.join(PWD, output_filename), c)
+if __name__ == "__main__":
+    compile()

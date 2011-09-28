@@ -7,7 +7,7 @@ This script assists you migrate data from Trac Wiki to ZWiki.
 NOTICE: it supports SQLite3 database backend only.
 
 
-File conf.py *MUST* contains following variables:
+File migrate_from_trac_wiki_to_zwiki_conf.py *MUST* contains following variables:
 
 - trac_db_path
     fullpath of your trac wiki database file, i.e., "/path/to/trac-wiki-instance/db/trac.db"
@@ -29,7 +29,7 @@ import urllib
 import web
 
 import tracwiki2markdown
-import conf
+import migrate_from_trac_wiki_to_zwiki_conf as conf
 
 osp = os.path
 PWD = osp.dirname(osp.realpath(__file__))

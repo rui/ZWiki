@@ -1,9 +1,13 @@
-$def with (title, content, toolbox=True, quicklinks=True)
+$def with (title, content, static_files=None, toolbox=True, quicklinks=True)
 <!DOCTYPE html>
 <html lang="zh">
 <head>
     <meta charset="utf-8" />
     <title>$title</title>
+
+$if static_files:
+    $static_files
+
 </head>
 <body>
 

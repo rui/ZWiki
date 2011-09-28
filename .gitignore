@@ -14,5 +14,4 @@ sessions/*
 *.html
 docs/*.html
 scripts/conf.py
-experimental
 t.py
