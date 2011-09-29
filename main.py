@@ -48,45 +48,15 @@ def session_hook():
 app.add_processor(web.loadhook(session_hook))
 
 
-def get_recent_change_content():
-    recent_change = osp.join(conf.pages_path, conf.RECENT_CHANGE_FILENAME)
-    f = file(recent_change)
-    buf = web.utils.safeunicode(f.read())
-    f.close()
+def get_recent_change_list(limit=50):
+    get_rc_list_cmd = "cd %s; find . -name '*.md' | xargs ls -t | head -n %d " % \
+                      (conf.pages_path, limit)
+    buf = os.popen(get_rc_list_cmd).read().strip()
 
-    lis = []
-    lines = web.utils.strips(buf, "\n").split("\n")
-    lines.reverse()
-    content = None
-
-    for i in lines:
-        url = osp.join("/", i)
-        lis.append('- [%s](%s)' % (i, url))
-        content = "\n".join(lis)
-
-    return content
-
-def update_recent_change_list(req_path, mode = "add", check = True):
-    req_path = web.utils.safeunicode(req_path)
-    recent_change_filepath = osp.join(conf.pages_path, conf.RECENT_CHANGE_FILENAME)
-
-    f = file(recent_change_filepath)
-    old_pages = web.utils.safeunicode(f.read()).split('\n')
-    f.close()
-
-    if check:
-        old_pages = [i for i in old_pages if osp.exists(osp.join(conf.pages_path, "%s.md" % i))]
-
-    def remove_item_from_list(a_list, item):
-        return [i for i in a_list if i != item]
-    old_pages = remove_item_from_list(old_pages, req_path)
-
-    if mode == "add":
-        old_pages.append(req_path)
-
-    new_content = web.utils.safestr('\n'.join(old_pages))
-    web.utils.safewrite(recent_change_filepath, new_content)
-
+    if buf:
+        lines = buf.split("\n")
+        strips_seq_item = ".md"
+        return zmarkdown_utils.sequence_to_unorder_list(lines, strips_seq_item)
 
 def get_page_file_or_dir_fullpath_by_req_path(req_path):
     if not req_path.endswith("/"):
@@ -156,12 +126,11 @@ def get_page_file_index(update=False):
     lines = lines[1:]
     latest_line = lines[-1]
 
-    p = '(\d+)\s+directories, (\d+)\s+files'
+    p = '(?P<dires>\d+)\s+directories, (?<files>\d+)\s+files'
     m_obj = re.match(p, latest_line)
 
     if m_obj:
-#        dires, files = m_obj.groups()
-        # strip latest line
+        # strip latest two lines
         lines = lines[:-2]
 
     lis = []
@@ -175,11 +144,14 @@ def get_page_file_index(update=False):
 
 def search(keywords):
     """
-    http://stackoverflow.com/questions/89228/how-to-call-external-command-in-python
+    Following doesn't works if cmd contains pipe character:
 
-    p_obj = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE)
-    p_obj.wait()
-    resp = p_obj.stdout.read().strip()
+        p_obj = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE)
+        p_obj.wait()
+        resp = p_obj.stdout.read().strip()
+
+    So we have to do use deprecated syntax ```os.popen```, for more detail, see
+    http://stackoverflow.com/questions/89228/how-to-call-external-command-in-python .
     """
     find_by_content_matched = " \| ".join(keywords.split())
     find_by_filename_matched = " -o -name ".join([" '*%s*' " % i for i in keywords.split()])
@@ -192,10 +164,10 @@ def search(keywords):
                               (conf.pages_path, find_by_content_matched)
         find_by_filename_cmd = "cd %s; find . -name %s | grep '.md' " % (conf.pages_path, find_by_filename_matched)
 
-    print "find_by_content_cmd:"
-    print find_by_content_cmd
-    print "find_by_filename_cmd:"
-    print find_by_filename_cmd
+#    print "find_by_content_cmd:"
+#    print find_by_content_cmd
+#    print "find_by_filename_cmd:"
+#    print find_by_filename_cmd
 
     matched_content_lines = os.popen(find_by_content_cmd).read().strip()
     if matched_content_lines:
@@ -204,9 +176,6 @@ def search(keywords):
     matched_filename_lines = os.popen(find_by_filename_cmd).read().strip()
     if matched_filename_lines:
         matched_filename_lines = matched_filename_lines.split("\n")
-        
-#    print "matched_content_lines:", matched_content_lines
-#    print "matched_filename_lines:", matched_filename_lines
 
     if matched_content_lines and matched_filename_lines:
         mixed = set(matched_content_lines)
@@ -226,12 +195,15 @@ special_path_mapping = {
 }
 
 
+
 class WikiIndex:
     def GET(self):
         title = "Recnet Changes"
         static_file_prefix = "/static/pages"
-        content = get_recent_change_content()
+
+        content = web.utils.safeunicode(get_recent_change_list())
         content = zmarkdown_utils.markdown(content, static_file_prefix)
+
         return t_render.canvas(title=title, content=content, toolbox=False)
 
 
@@ -288,8 +260,7 @@ class WikiPage:
 
             return t_render.rename(req_path)
         elif action == "delete":
-            if delete_page_file_by_fullpath(fullpath):
-                update_recent_change_list(req_path, mode="delete")
+            delete_page_file_by_fullpath(fullpath)
 
             web.seeother("/")
             return
@@ -323,7 +294,6 @@ class WikiPage:
                 idx_dot_md_fullpath = osp.join(fullpath, ".index.md")
                 web.utils.safewrite(idx_dot_md_fullpath, content)
 
-            update_recent_change_list(req_path)
             web.seeother("/%s" % req_path)
         elif action == "rename":
             new_path = inputs.get("new_path")
@@ -347,8 +317,6 @@ class WikiPage:
                 os.makedirs(parent)
 
             shutil.move(old_fullpath, new_fullpath)
-            update_recent_change_list(req_path, mode="delete")
-            update_recent_change_list(new_path)
 
             if osp.isfile(new_fullpath):
                 web.seeother("/%s" % new_path)
@@ -389,13 +357,12 @@ class SpecialWikiPage:
             matched_file_list = [web.utils.strips(i, "./") for i in matched_lines]
 
             lis = []
-            content = ""
             for i in matched_file_list:
                 i = web.utils.strips(i, ".md")
                 i = web.utils.safeunicode(i)
                 url = osp.join("/", i)
                 lis.append('- [%s](%s)' % (i, url))
-                content = "\n".join(lis)
+            content = "\n".join(lis)
 
             content = zmarkdown_utils.markdown(content)
             return t_render.search(keywords=keywords, content=content)

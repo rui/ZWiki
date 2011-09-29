@@ -1,21 +1,22 @@
 import os
 import re
 
+import web
 from markdown import markdown as _markdown
 
 import zhighlight
 
 osp = os.path
 
-__all__ = ["fix_static_file_url"]
+__all__ = ["fix_static_file_url", "sequence_to_unorder_list", "markdown"]
 
 
 def _fix_img_url(text, static_file_prefix = None):
     """
-    text = '![blah blah](20100426-400x339.png)'
-    static_file_prefix = '/static/files/'
-    result = _fix_img_url(text, static_file_prefix)
-    >>> assert result == '![blah blah](/static/files/20100426-400x339.png)'
+        >>> text = '![blah blah](20100426-400x339.png)'
+        >>> static_file_prefix = '/static/files/'
+        >>> _fix_img_url(text, static_file_prefix)
+        '![blah blah](/static/files/20100426-400x339.png)'
     """
     def img_url_repl(match_obj):
         img_alt = match_obj.group("img_alt")
@@ -32,10 +33,10 @@ def _fix_img_url(text, static_file_prefix = None):
 
 def _fix_img_url_with_option(text, static_file_prefix = None):
     """
-    text = '![blah blah](20100426-400x339.png "png title")'
-    static_file_prefix = '/static/files/'
-    result = _fix_img_url_with_option(text, static_file_prefix)
-    >>> assert result == '![blah blah](/static/files/20100426-400x339.png "png title")'
+        >>> text = '![blah blah](20100426-400x339.png "png title")'
+        >>> static_file_prefix = '/static/files/'
+        >>> _fix_img_url_with_option(text, static_file_prefix)
+        '![blah blah](/static/files/20100426-400x339.png "png title")'
     """
     def img_url_repl(match_obj):
         img_alt = match_obj.group('img_alt')
@@ -57,6 +58,26 @@ def fix_static_file_url(text, static_file_prefix):
     return text
 
 
+def sequence_to_unorder_list(lines, strips_seq_item=None):
+    """
+        >>> sequence_to_unorder_list(['a','b','c'])
+        '- [a](/a)\\n- [b](/b)\\n- [c](/c)'
+    """
+    lines = [web.utils.strips(i, "./") for i in lines]
+    lis = []
+
+    for i in lines:
+        if strips_seq_item:
+            i = web.utils.strips(i, strips_seq_item)
+
+        url = osp.join("/", i)
+        lis.append('- [%s](%s)' % (i, url))
+
+    content = "\n".join(lis)
+
+    return content
+
+
 def markdown(text, static_file_prefix = None):
     text = text.replace("\r\n", "\n")
     if static_file_prefix is not None:
@@ -64,3 +85,8 @@ def markdown(text, static_file_prefix = None):
 
     text = zhighlight.highlight_trac_wiki_code(text)
     return _markdown(text)
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
