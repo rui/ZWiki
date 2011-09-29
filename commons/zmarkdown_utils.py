@@ -57,7 +57,6 @@ def fix_static_file_url(text, static_file_prefix):
     text = _fix_img_url_with_option(text, static_file_prefix)
     return text
 
-
 def sequence_to_unorder_list(lines, strips_seq_item=None):
     """
         >>> sequence_to_unorder_list(['a','b','c'])
@@ -74,9 +73,9 @@ def sequence_to_unorder_list(lines, strips_seq_item=None):
         lis.append('- [%s](%s)' % (i, url))
 
     content = "\n".join(lis)
-
+    content = web.utils.safeunicode(content)
+    
     return content
-
 
 def markdown(text, static_file_prefix = None):
     text = text.replace("\r\n", "\n")
@@ -84,8 +83,8 @@ def markdown(text, static_file_prefix = None):
         text = fix_static_file_url(text, static_file_prefix)
 
     text = zhighlight.highlight_trac_wiki_code(text)
+    
     return _markdown(text)
-
 
 if __name__ == "__main__":
     import doctest
