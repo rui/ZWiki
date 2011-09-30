@@ -127,7 +127,7 @@ def search_by_filename_and_file_content(keywords, limit=100):
     matched_content_lines = web.utils.safeunicode(matched_content_lines)
     if matched_content_lines:
         matched_content_lines = matched_content_lines.split("\n")
-        
+
     matched_filename_lines = os.popen(find_by_filename_cmd).read().strip()
     matched_filename_lines = web.utils.safeunicode(matched_filename_lines)
     if matched_filename_lines:
@@ -142,11 +142,11 @@ def search_by_filename_and_file_content(keywords, limit=100):
         mixed = matched_filename_lines
     else:
         return None
-    
+
     lines = mixed
     print "lines:", len(lines)
     content = zmarkdown_utils.sequence_to_unorder_list(lines, strips_seq_item=".md")
-    
+
     return content
 
 special_path_mapping = {
@@ -154,6 +154,30 @@ special_path_mapping = {
     's' : search_by_filename_and_file_content,
 }
 
+def _append_static_file(buf, filepath, file_type, add_newline=False):
+    assert file_type in ("css", "js")
+
+    if file_type == "css":
+        ref = '<link href="%s" rel="stylesheet" type="text/css">' % filepath
+    else:
+        ref = '<script type="text/javascript" src="%s"></script>' % filepath
+
+    if not add_newline:
+        static_files = '%s\n    %s' % (buf, ref)
+    else:
+        static_files = '%s\n\n    %s' % (buf, ref)
+
+    return static_files
+
+def _get_trac_wiki_theme():
+    static_files = ""
+    css_files = ["trac.css", "wiki.css", "pygments-trac.css"]
+
+    for i in css_files:
+        filepath = osp.join("/static", "css", i)
+        static_files = _append_static_file(static_files, filepath, file_type="css")
+
+    return static_files
 
 def get_global_default_static_files():
     if zhighlight.HIGHLIGHT_STYLE:
@@ -161,17 +185,21 @@ def get_global_default_static_files():
     else:
         static_files = ""
 
-    css_files = ["trac.css", "wiki.css", "pygments-trac.css"]
-    for i in css_files:
-        css_filepath = osp.join("/static", "css", i)
-        css_ref = '<link href="%s" rel="stylesheet" type="text/css">' % css_filepath
-        static_files = '%s\n    %s' % (static_files, css_ref)
+    buf = _get_trac_wiki_theme()
+    static_files = "%s%s" % (static_files, buf)
+
+    if conf.config_theme_alian_right:
+        filepath = osp.join("/static", "css", "alian-right.css")
+        static_files = _append_static_file(static_files, filepath, file_type="css")
 
     js_files = ["jquery.js"]
     for i in js_files:
-        js_filepath = osp.join("/static", "js", i)
-        js_ref = '<script type="text/javascript" src="%s"></script>' % js_filepath
-        static_files = '%s\n    %s' % (static_files, js_ref)    
+        filepath = osp.join("/static", "js", i)
+        static_files = _append_static_file(static_files, filepath, file_type="js", add_newline=True)
+
+    if conf.config_theme_alian_right:
+        filepath = osp.join("/static", "js", "alian-right.js")
+        static_files = _append_static_file(static_files, filepath, file_type="js")        
 
     return static_files
 default_global_static_files = get_global_default_static_files()
@@ -182,11 +210,11 @@ class WikiIndex:
         static_file_prefix = "/static/pages"
         content = get_recent_change_list()
         content = zmarkdown_utils.markdown(content, static_file_prefix)
-        
+
         return t_render.canvas(title=title, content=content, toolbox=False,
                                static_files = default_global_static_files)
 
-    
+
 class WikiPage:
     def GET(self, req_path):
         req_path = cgi.escape(req_path)
@@ -219,7 +247,7 @@ class WikiPage:
                 web.seeother("/%s?action=edit" % req_path)
                 return
 
-            content = zmarkdown_utils.markdown(content, static_file_prefix)        
+            content = zmarkdown_utils.markdown(content, static_file_prefix)
             return t_render.canvas(title=title, content=content, static_files=default_global_static_files)
         elif action == "edit":
             if osp.isfile(fullpath):
@@ -231,12 +259,12 @@ class WikiPage:
             else:
                 raise Exception("unknow path")
 
-            return t_render.editor(title, content)
+            return t_render.editor(title, content, static_files=default_global_static_files)
         elif action == "rename":
             if not osp.exists(fullpath):
                 raise web.NotFound()
 
-            return t_render.rename(req_path)
+            return t_render.rename(req_path, static_files=default_global_static_files)
         elif action == "delete":
             delete_page_file_by_fullpath(fullpath)
 
@@ -288,7 +316,7 @@ class WikiPage:
 
             if osp.exists(new_fullpath):
                 err_info = "Warning: The page foobar already exists."
-                return t_render.rename(req_path, err_info)
+                return t_render.rename(req_path, err_info, static_files=default_global_static_files)
 
             parent = osp.dirname(new_fullpath)
             if not osp.exists(parent):
@@ -310,31 +338,30 @@ class WikiPage:
 class SpecialWikiPage:
     def GET(self, req_path):
         f = special_path_mapping.get(req_path)
-        inputs = web.input()
 
-        if callable(f):
+        if f:
             if req_path == "index":
                 index = f
-                content = index()                    
+                content = index()
                 content = zmarkdown_utils.markdown(content)
                 return t_render.canvas(title=req_path, content=content, toolbox=False,
                                        static_files=default_global_static_files)
-    
+
         raise web.NotFound()
 
     def POST(self, req_path):
         f = special_path_mapping.get(req_path)
         inputs = web.input()
 
-        if callable(f):
+        if f:
             keywords = inputs.get("k")
-            
+
             keywords = web.utils.safestr(keywords)
             search = f
-            
+
             content = search(keywords)
             content = zmarkdown_utils.markdown(content)
-            
+
             return t_render.search(keywords=keywords, content=content,
                                    static_files=default_global_static_files)
         else:

@@ -25,7 +25,7 @@ $if quicklinks:
 
 <div id="form">
     <form method="POST" action="/~s" accept-charset="utf-8">
-        <input type="text" value="$keywords" name="k" />
+        <input type="text" value="$keywords" name="k" class="auto-increase-width-size" />
         <input type="submit" value="Search" />
     </form>
 </div>

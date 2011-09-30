@@ -1,14 +1,9 @@
 $def with (title, content, static_files=None, toolbox=True, quicklinks=True)
 <!DOCTYPE html>
-<html lang="zh">
+<html>
 <head>
     <meta charset="utf-8" />
     <title>$title</title>
-
-    <style type="text/css">
-        #searchbox { float : right; }
-        hr { clear : both; }
-    </style>
 
     $if static_files:
         $static_files
@@ -26,7 +21,7 @@ $if quicklinks:
     <div id="searchbox">
         <div id="form">
             <form method="POST" action="/~s" accept-charset="utf-8">
-                <input type="text" name="k" />
+                <input type="text" name="k" class="auto-increase-width-size" />
                 <input type="submit" value="Search" />
             </form>
         </div>
