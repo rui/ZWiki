@@ -1,5 +1,15 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
+
+"""
+Available lexers
+- http://pygments.org/docs/lexers/
+
+Syntax Coloring of Source Code
+- http://trac.edgewall.org/wiki/TracSyntaxColoring
+
+"""
+
 import re
 
 import web
@@ -13,9 +23,12 @@ __all__ = ["highlight", "highlight_trac_wiki_code",
            "HIGHLIGHT_STYLE"]
 
 
-HIGHLIGHT_STYLE = HtmlFormatter().get_style_defs('.source-code')
+HIGHLIGHT_STYLE = HtmlFormatter().get_style_defs('.code')
+HIGHLIGHT_STYLE = ""
 
-def highlight(code, filename = None, stripall=True, linenos=False, cssclass="source-code"):
+
+def highlight(code, filename = None, stripall=True, linenos=False, cssclass="code"):
+    # TODO: DONT USE PERL_LEXER AS DEFAULT
     if filename:
         try:
             lexer = guess_lexer_for_filename(filename, code, stripall=stripall)

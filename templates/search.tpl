@@ -1,9 +1,13 @@
-$def with (keywords="", content=None, quicklinks=True)
+$def with (keywords="", content=None, quicklinks=True, static_files=None)
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
     <title>Search</title>
+
+    $if static_files:
+        $static_files
+
 </head>
 <body>
 

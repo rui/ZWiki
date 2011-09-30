@@ -10,8 +10,8 @@ $def with (title, content, static_files=None, toolbox=True, quicklinks=True)
         hr { clear : both; }
     </style>
 
-$if static_files:
-    $static_files
+    $if static_files:
+        $static_files
 
 </head>
 <body>

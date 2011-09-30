@@ -76,7 +76,7 @@ def get_page_file_list_content_by_fullpath(fullpath):
     if buf:
         lines = buf.split("\n")
         strips_seq_item = ".md"
-        return zmarkdown_utils.sequence_to_unorder_list(lines, strips_seq_item)
+        return zmarkdown_utils.sequence_to_unorder_list(lines=lines, strips_seq_item=strips_seq_item)
 
 def delete_page_file_by_fullpath(fullpath):
     if osp.isfile(fullpath):
@@ -89,13 +89,14 @@ def delete_page_file_by_fullpath(fullpath):
     return False
 
 def get_page_file_index(limit=1000):
-    get_page_file_index_cmd = " find . -name '*.md' | xargs ls -t | head -n %d " % limit
+    get_page_file_index_cmd = " cd %s; find . -name '*.md' | xargs ls -t | head -n %d " % (conf.pages_path, limit)
     lines = os.popen(get_page_file_index_cmd).read().strip()
     if lines:
+        lines = lines.split("\n")
         content = zmarkdown_utils.sequence_to_unorder_list(lines, strips_seq_item=".md")
         return content
 
-def search(keywords):
+def search_by_filename_and_file_content(keywords, limit=100):
     """
     Following doesn't works if cmd contains pipe character:
 
@@ -109,13 +110,13 @@ def search(keywords):
     find_by_content_matched = " \| ".join(keywords.split())
     find_by_filename_matched = " -o -name ".join([" '*%s*' " % i for i in keywords.split()])
     if find_by_content_matched.find("\|") != -1:
-        find_by_content_cmd = " cd %s; grep ./ -r -e ' \(%s\) ' | awk -F ':' '{print $1}' | uniq " % \
-                              (conf.pages_path, find_by_content_matched)
-        find_by_filename_cmd = " cd %s; find . \( -name %s \) | grep '.md' " % (conf.pages_path, find_by_filename_matched)
+        find_by_content_cmd = " cd %s; grep ./ -r -e ' \(%s\) ' | awk -F ':' '{print $1}' | uniq | head -n %d " % \
+                              (conf.pages_path, find_by_content_matched, limit)
+        find_by_filename_cmd = " cd %s; find . \( -name %s \) | grep '.md' | head -n %d " % (conf.pages_path, find_by_filename_matched, limit)
     else:
-        find_by_content_cmd = " cd %s; grep ./ -r -e ' %s ' | awk -F ':' '{print $1}' | uniq " % \
-                              (conf.pages_path, find_by_content_matched)
-        find_by_filename_cmd = " cd %s; find . -name %s | grep '.md' " % (conf.pages_path, find_by_filename_matched)
+        find_by_content_cmd = " cd %s; grep ./ -r -e ' %s ' | awk -F ':' '{print $1}' | uniq | head -n %d " % \
+                              (conf.pages_path, find_by_content_matched, limit)
+        find_by_filename_cmd = " cd %s; find . -name %s | grep '.md' | head -n %d " % (conf.pages_path, find_by_filename_matched, limit)
 
 #    print "find_by_content_cmd:"
 #    print find_by_content_cmd
@@ -123,10 +124,12 @@ def search(keywords):
 #    print find_by_filename_cmd
 
     matched_content_lines = os.popen(find_by_content_cmd).read().strip()
+    matched_content_lines = web.utils.safeunicode(matched_content_lines)
     if matched_content_lines:
         matched_content_lines = matched_content_lines.split("\n")
-
+        
     matched_filename_lines = os.popen(find_by_filename_cmd).read().strip()
+    matched_filename_lines = web.utils.safeunicode(matched_filename_lines)
     if matched_filename_lines:
         matched_filename_lines = matched_filename_lines.split("\n")
 
@@ -138,15 +141,40 @@ def search(keywords):
     elif not matched_content_lines  and matched_filename_lines:
         mixed = matched_filename_lines
     else:
-        mixed = ""
-        
-    return mixed
+        return None
+    
+    lines = mixed
+    print "lines:", len(lines)
+    content = zmarkdown_utils.sequence_to_unorder_list(lines, strips_seq_item=".md")
+    
+    return content
 
 special_path_mapping = {
     'index' : get_page_file_index,
-    's' : search,
+    's' : search_by_filename_and_file_content,
 }
 
+
+def get_global_default_static_files():
+    if zhighlight.HIGHLIGHT_STYLE:
+        static_files = '<style type="text/css">\n%s\n    </style>' % zhighlight.HIGHLIGHT_STYLE
+    else:
+        static_files = ""
+
+    css_files = ["trac.css", "wiki.css", "pygments-trac.css"]
+    for i in css_files:
+        css_filepath = osp.join("/static", "css", i)
+        css_ref = '<link href="%s" rel="stylesheet" type="text/css">' % css_filepath
+        static_files = '%s\n    %s' % (static_files, css_ref)
+
+    js_files = ["jquery.js"]
+    for i in js_files:
+        js_filepath = osp.join("/static", "js", i)
+        js_ref = '<script type="text/javascript" src="%s"></script>' % js_filepath
+        static_files = '%s\n    %s' % (static_files, js_ref)    
+
+    return static_files
+default_global_static_files = get_global_default_static_files()
 
 class WikiIndex:
     def GET(self):
@@ -155,7 +183,8 @@ class WikiIndex:
         content = get_recent_change_list()
         content = zmarkdown_utils.markdown(content, static_file_prefix)
         
-        return t_render.canvas(title=title, content=content, toolbox=False)
+        return t_render.canvas(title=title, content=content, toolbox=False,
+                               static_files = default_global_static_files)
 
     
 class WikiPage:
@@ -190,10 +219,8 @@ class WikiPage:
                 web.seeother("/%s?action=edit" % req_path)
                 return
 
-            content = zmarkdown_utils.markdown(content, static_file_prefix)
-            static_files = '<style type="text/css">\n%s\n</style>' % zhighlight.HIGHLIGHT_STYLE
-
-            return t_render.canvas(title=title, content=content, static_files=static_files)
+            content = zmarkdown_utils.markdown(content, static_file_prefix)        
+            return t_render.canvas(title=title, content=content, static_files=default_global_static_files)
         elif action == "edit":
             if osp.isfile(fullpath):
                 content = zsh_util.cat(fullpath)
@@ -287,14 +314,11 @@ class SpecialWikiPage:
 
         if callable(f):
             if req_path == "index":
-                action = inputs.get("action")
-                if action == "update":
-                    content = f(True)
-                else:
-                    content = f()
-                    
+                index = f
+                content = index()                    
                 content = zmarkdown_utils.markdown(content)
-                return t_render.canvas(title=req_path, content=content, toolbox=False)
+                return t_render.canvas(title=req_path, content=content, toolbox=False,
+                                       static_files=default_global_static_files)
     
         raise web.NotFound()
 
@@ -304,12 +328,15 @@ class SpecialWikiPage:
 
         if callable(f):
             keywords = inputs.get("k")
+            
             keywords = web.utils.safestr(keywords)
-            lines = search(keywords)
-
-            content = zmarkdown_utils.sequence_to_unorder_list(lines, strips_seq_item=".md")
+            search = f
+            
+            content = search(keywords)
             content = zmarkdown_utils.markdown(content)
-            return t_render.search(keywords=keywords, content=content)
+            
+            return t_render.search(keywords=keywords, content=content,
+                                   static_files=default_global_static_files)
         else:
             raise web.NotFound()
 
@@ -322,10 +349,6 @@ if __name__ == "__main__":
 
     if not osp.exists(conf.pages_path):
         os.mkdir(conf.pages_path)
-
-    recent_change_filepath = osp.join(conf.pages_path, conf.RECENT_CHANGE_FILENAME)
-    if not osp.exists(recent_change_filepath):
-        web.utils.safewrite(recent_change_filepath, "")
 
 #	web.wsgi.runwsgi = lambda func, addr=None: web.wsgi.runfcgi(func, addr)
     app.run()

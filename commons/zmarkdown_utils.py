@@ -62,10 +62,10 @@ def sequence_to_unorder_list(lines, strips_seq_item=None):
         >>> sequence_to_unorder_list(['a','b','c'])
         '- [a](/a)\\n- [b](/b)\\n- [c](/c)'
     """
-    lines = [web.utils.strips(i, "./") for i in lines]
     lis = []
 
     for i in lines:
+        i = web.utils.strips(i, "./")
         if strips_seq_item:
             i = web.utils.strips(i, strips_seq_item)
 
