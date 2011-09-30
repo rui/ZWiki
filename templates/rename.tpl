@@ -12,6 +12,8 @@ $def with (title, err_info=None, static_files=None)
 <body>
 
 
+<div id="container">
+
 <h2>Rename: $title</h2>
 
 <div id="rename">
@@ -21,6 +23,8 @@ $def with (title, err_info=None, static_files=None)
             <input type="submit" value="Rename" />
         </div>
     </form>
+</div>
+
 </div>
 
 

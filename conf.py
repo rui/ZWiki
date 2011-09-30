@@ -6,5 +6,3 @@ pages_path = osp.join(PWD, "pages")
 
 sessions_path = osp.join(PWD, 'sessions')
 templates_path = osp.join(PWD, "templates")
-
-config_theme_alian_right = True

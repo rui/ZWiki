@@ -1,0 +1,31 @@
+#container { 
+    width : 700px;
+    margin : 0 auto 0 auto;
+    padding-bottom : 30px;
+}
+
+#quicklinks, #searchbox, #toolbox { text-align : right; }
+
+#searchbox { position : fixed; top : 35px; right : 20px;  }
+
+/* #searchbox form { display : inline; } */
+
+#quicklinks a, #toolbox a { margin-left : 10px ; font-size : 14px; padding : 3px; }
+
+
+#toc { 
+    position : fixed;
+    top : 50px;
+    right : 100px;
+}
+
+#toc a { display : block; width : 190px; }
+
+#toc a[title=H1] { font-size : 20px;}
+#toc a[title=H2] { font-size : 18px;}
+#toc a[title=H3] { font-size : 16px;}
+#toc a[title=H4] { font-size : 14px;}
+#toc a[title=H5] { font-size : 12px;}
+#toc a[title=H6] { font-size : 10px;}
+
+

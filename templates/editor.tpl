@@ -12,6 +12,8 @@ $def with (title, content, static_files=None)
 <body>
 
 
+<div id="container">
+
 <h2>Editing: $title</h2>
 
 <div id="editor">
@@ -22,6 +24,8 @@ $def with (title, content, static_files=None)
             <input type="submit" value="Update" />
         </div>
     </form>
+</div>
+
 </div>
 
 

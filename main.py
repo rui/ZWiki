@@ -188,18 +188,15 @@ def get_global_default_static_files():
     buf = _get_trac_wiki_theme()
     static_files = "%s%s" % (static_files, buf)
 
-    if conf.config_theme_alian_right:
-        filepath = osp.join("/static", "css", "alian-right.css")
+    css_files = ["main.css"]
+    for i in css_files:
+        filepath = osp.join("/static", "css", i)
         static_files = _append_static_file(static_files, filepath, file_type="css")
 
-    js_files = ["jquery.js"]
+    js_files = ["jquery.js", "main.js"]
     for i in js_files:
         filepath = osp.join("/static", "js", i)
         static_files = _append_static_file(static_files, filepath, file_type="js", add_newline=True)
-
-    if conf.config_theme_alian_right:
-        filepath = osp.join("/static", "js", "alian-right.js")
-        static_files = _append_static_file(static_files, filepath, file_type="js")        
 
     return static_files
 default_global_static_files = get_global_default_static_files()
