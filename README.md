@@ -14,6 +14,7 @@ To get the latest development version from git:
 
 ## FEATURES
 
+- it really works
 - run up without database, CRUD page file
 - support [Markdown](http://daringfireball.net/projects/markdown/) syntax
 - auto include static image file
