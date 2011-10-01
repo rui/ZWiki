@@ -13,6 +13,7 @@ To get the latest development version from git:
     cd ZWiki.git
     python main.py
     
+Visit http://localhost:8080 .
 
 ## FEATURES
 
