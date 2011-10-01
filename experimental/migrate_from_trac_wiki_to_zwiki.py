@@ -168,16 +168,28 @@ def main():
 
 
 def test():
-    name = '录音/GNU'
-    #name2 = 'note/cassandra/zh-cn'
-    name = 'Programming-Language/JavaScript/Notes/event-is-undefined '
+    name = 'System-Management/Plan9/Installing-Plan9-on-Qemu'
     print "page_name:", name
 
     page = get_page_latest_rev_by_name(name)
+
     create_page(urllib.unquote(page["name"]), page["text"])
     create_attachments(page["name"])
 
 
+def test2():
+    name = 'note/系统管理/代理'
+    print "page_name:", name
+
+    page = get_page_latest_rev_by_name(name)
+    content = page["text"]
+
+    content = tracwiki2markdown.tracwiki2markdown(content)
+    with open('/tmp/t.html', 'w') as f:
+        f.write(web.utils.safestr(content))
+
+
 if __name__ == "__main__":
 #    test()
+#    test2()
     main()

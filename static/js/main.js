@@ -62,4 +62,6 @@ var auto_increase_width_size = function() {
 $(document).ready(function() {
     auto_increase_width_size();
     auto_generate_toc();
+
+    prettyPrint();
 });

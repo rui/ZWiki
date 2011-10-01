@@ -7,7 +7,6 @@ import shutil
 import web
 
 import conf
-from commons import zhighlight
 from commons import zmarkdown_utils
 from commons import zsh_util
 from commons import zunicode
@@ -171,7 +170,7 @@ def _append_static_file(buf, filepath, file_type, add_newline=False):
 
 def _get_trac_wiki_theme():
     static_files = ""
-    css_files = ["trac.css", "wiki.css", "pygments-trac.css"]
+    css_files = ["trac.css", "wiki.css"]
 
     for i in css_files:
         filepath = osp.join("/static", "css", i)
@@ -180,20 +179,19 @@ def _get_trac_wiki_theme():
     return static_files
 
 def get_global_default_static_files():
-    if zhighlight.HIGHLIGHT_STYLE:
-        static_files = '<style type="text/css">\n%s\n    </style>' % zhighlight.HIGHLIGHT_STYLE
-    else:
-        static_files = ""
-
-    buf = _get_trac_wiki_theme()
-    static_files = "%s%s" % (static_files, buf)
+    static_files = _get_trac_wiki_theme()
 
     css_files = ["main.css"]
     for i in css_files:
         filepath = osp.join("/static", "css", i)
         static_files = _append_static_file(static_files, filepath, file_type="css")
 
-    js_files = ["jquery.js", "jquery-ui.js", "main.js"]
+    filepath = osp.join("/static", "js", "prettify", "prettify.css")
+    static_files = _append_static_file(static_files, filepath, file_type="css")        
+
+    js_files = ["jquery.js", "jquery-ui.js",
+                osp.join("prettify", "prettify.js"),
+                "main.js"]
     for i in js_files:
         filepath = osp.join("/static", "js", i)
         static_files = _append_static_file(static_files, filepath, file_type="js", add_newline=True)

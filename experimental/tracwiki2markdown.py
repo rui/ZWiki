@@ -23,8 +23,8 @@ import re
 
 
 def tracwiki2markdown(text):
-    # We do keep code block markups, we can highlight them with [pygments](http://pygments.org).
     # TODO: add table filter
+#    text = text.replace("\r\n", "\n")
 
     h6_p = "^======\s(.+?)\s======"
     h6_p_obj = re.compile(h6_p, re.MULTILINE)
@@ -89,21 +89,55 @@ def tracwiki2markdown(text):
     text = super_script_p_obj.sub("<sub>\\1</sub>", text)
 
 
-    def img_url_repl(matchobj):
-        groups = matchobj.groups(0)
-        args = [i.strip() for i in groups[0].split(',')]
-        url = args[0]
-        if url.startswith("wiki:"):
-            img_match_obj = re.match(r"wiki:(?:[^:]+?):(.+)", url)
-            if img_match_obj:
-                img_url = img_match_obj.groups()[0]
-                return '![alt](%s)' % img_url
+#    def img_url_repl(matchobj):
+#        groups = matchobj.groups(0)
+#        args = [i.strip() for i in groups[0].split(',')]
+#        url = args[0]
+#        if url.startswith("wiki:"):
+#            img_match_obj = re.match(r"wiki:(?:[^:]+?):(.+)", url)
+#            if img_match_obj:
+#                img_url = img_match_obj.groups()[0]
+#                return '![alt](%s)' % img_url
+#
+#        return '![alt](\\1)'
+#
+#    img_p = r"\[\[Image\((.+?)\)\]\]"
+#    img_p_obj = re.compile(img_p, re.MULTILINE)
+#    text = img_p_obj.sub(img_url_repl, text)
 
-        return '![alt](\\1)'
 
-    img_p = r"\[\[Image\((.+?)\)\]\]"
-    img_p_obj = re.compile(img_p, re.MULTILINE)
-    text = img_p_obj.sub(img_url_repl, text)
+    def img_url_repl(match_obj):
+        img_url = match_obj.group("img_url")
+        if img_url:
+            if img_url.startswith("wiki:"):
+                img_match_obj = re.match(r"wiki:(?:[^:]+?):(.+)", img_url)
+                if img_match_obj:
+                    img_url = img_match_obj.groups()[0]
+                    return '![alt](%s)' % img_url
+
+            return '![alt](%s)' % img_url
+        return '~~missing image~~'
+
+    img_url_p = r"\[\[Image\((?P<img_url>.+?),\s(?:.+?)\)\]\]"
+    img_url_p_obj = re.compile(img_url_p, re.MULTILINE)
+    text = img_url_p_obj.sub(img_url_repl, text)
+
+
+    def img_url_repl(match_obj):
+        img_url = match_obj.group('img_url')
+        if img_url:
+            if img_url.startswith("wiki:"):
+                img_match_obj = re.match(r"wiki:(?:[^:]+?):(.+)", img_url)
+                if img_match_obj:
+                    img_url = img_match_obj.groups()[0]
+                    return '![alt](%s)' % img_url
+
+            return '![alt](%s)' % img_url
+        return '~~missing image~~'
+
+    img_url_p = r"\[\[Image\((?P<img_url>.+?)\)\]\]"
+    img_url_p_obj = re.compile(img_url_p, re.MULTILINE)
+    text = img_url_p_obj.sub(img_url_repl, text)
 
     return text
 

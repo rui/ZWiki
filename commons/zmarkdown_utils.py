@@ -1,14 +1,39 @@
+#!/usr/bin/env python
+
+"""
+Trac - Syntax Coloring of Source Code
+- http://trac.edgewall.org/wiki/TracSyntaxColoring
+"""
+
 import os
 import re
 
 import web
 from markdown import markdown as _markdown
 
-import zhighlight
-
 osp = os.path
 
-__all__ = ["fix_static_file_url", "sequence_to_unorder_list", "markdown"]
+__all__ = ["fix_static_file_url", "sequence_to_unorder_list",
+           "trac_wiki_code_block_to_markdown_code",
+           "markdown"]
+
+
+def trac_wiki_code_block_to_markdown_code(text):
+    alias_p = '[a-zA-Z0-9#\-\+ \.]'
+    shebang_p = '(?P<shebang_line>[\s]*#!%s{1,21}[\s]*?)' % alias_p
+
+    code_p = '(?P<code>[^\f\v]+?)'
+
+    code_block_p = "^\{\{\{[\s]*%s*%s[\s]*\}\}\}" % (shebang_p, code_p)
+    code_block_p_obj = re.compile(code_block_p, re.MULTILINE)
+
+    def code_repl(match_obj):
+        code = match_obj.group('code')
+        buf = "\n    ".join(code.split(os.linesep))
+        buf = "    %s" % (buf)
+        return buf
+
+    return code_block_p_obj.sub(code_repl, text)
 
 
 def _fix_img_url(text, static_file_prefix = None):
@@ -78,11 +103,10 @@ def sequence_to_unorder_list(lines, strips_seq_item=None):
     return content
 
 def markdown(text, static_file_prefix = None):
-    text = text.replace("\r\n", "\n")
     if static_file_prefix is not None:
         text = fix_static_file_url(text, static_file_prefix)
 
-    text = zhighlight.highlight_trac_wiki_code(text)
+    text = trac_wiki_code_block_to_markdown_code(text)
     
     return _markdown(text)
 
