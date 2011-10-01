@@ -4,6 +4,7 @@ ZWiki is a lightweight wiki system implement in Python and web framework [web.py
 
 ZWiki is not [Zwiki](http://en.wikipedia.org/wiki/Zwiki).
 
+ZWiki doesn't uses any databases, you can edit page files via Firefox + It's All Text! + Emacs/gVIM.
 
 ## GET STARTED
 
