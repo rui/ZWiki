@@ -43,7 +43,3 @@ To get the latest development version from git:
 - py-markdown 2.0.3+
 
     On Mac OS X via MacPorts, `sudo port install py-markdown`
-
-- pygments 1.4+
-
-    On Mac OS X via MacPorts, `sudo port install py-pygments`
