@@ -30,8 +30,6 @@ $if quicklinks:
 
 <div id="title">$title</div>
 
-<div id="toc">&nbsp;</div>
-
 <div id="content">$content</div>
 
 

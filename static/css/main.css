@@ -4,28 +4,42 @@
     padding-bottom : 30px;
 }
 
-#quicklinks, #searchbox, #toolbox { text-align : right; }
+#quicklinks, 
+#searchbox, 
+#toolbox { text-align : right; }
 
 #searchbox { position : fixed; top : 35px; right : 20px;  }
-
-/* #searchbox form { display : inline; } */
 
 #quicklinks a, #toolbox a { margin-left : 10px ; font-size : 14px; padding : 3px; }
 
 
 #toc { 
     position : fixed;
-    top : 50px;
-    right : 100px;
+    top : 80px;
+    right : 20px;
+    padding: .5em 1em;
+    border: 1px outset #ddc;
+    background: #ffd;
 }
 
-#toc a { display : block; width : 190px; }
+#toc ul { 
+    list-style : none; 
+    /* fix it on webkit */
+    -webkit-padding-start: 0px;
+    /* fix it on Gecko */
+    padding-left : 0px;
+}
 
-#toc a[title=H1] { font-size : 20px;}
-#toc a[title=H2] { font-size : 18px;}
-#toc a[title=H3] { font-size : 16px;}
-#toc a[title=H4] { font-size : 14px;}
-#toc a[title=H5] { font-size : 12px;}
-#toc a[title=H6] { font-size : 10px;}
+#toc a { display : block; }
 
+/* #toc .h1 { padding-left : 0px; } */
+#toc .h2 { padding-left : 0em; }
+#toc .h3 { padding-left : 1em; }
+#toc .h4 { padding-left : 2em; }
+#toc .h5 { padding-left : 3em; }
+#toc .h6 { padding-left : 4em; }
 
+#title { margin-top : 40px; }
+#content {  margin-top : 40px; }
+
+#goto-top { position : fixed; right : 5em; bottom : 5em; }

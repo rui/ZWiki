@@ -193,7 +193,7 @@ def get_global_default_static_files():
         filepath = osp.join("/static", "css", i)
         static_files = _append_static_file(static_files, filepath, file_type="css")
 
-    js_files = ["jquery.js", "main.js"]
+    js_files = ["jquery.js", "jquery-ui.js", "main.js"]
     for i in js_files:
         filepath = osp.join("/static", "js", i)
         static_files = _append_static_file(static_files, filepath, file_type="js", add_newline=True)
