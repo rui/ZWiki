@@ -19,10 +19,12 @@ $def with (title, content, static_files=None)
 <div id="editor">
     <form method="POST" accept-charset="utf-8">
         <textarea name="content" cols="100" rows="20">$content</textarea><br />
-        <p><a href="http://daringfireball.net/projects/markdown/syntax">Markdown Syntax</a></p>
+
         <div id="toolbox">
             <input type="submit" value="Update" />
         </div>
+
+        <p><a href="http://daringfireball.net/projects/markdown/syntax">Markdown Syntax</a></p>
     </form>
 </div>
 

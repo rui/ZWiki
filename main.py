@@ -357,7 +357,10 @@ class SpecialWikiPage:
             search = f
 
             content = search(keywords)
-            content = zmarkdown_utils.markdown(content)
+            if content:
+                content = zmarkdown_utils.markdown(content)
+            else:
+                content = "not found matched"
 
             return t_render.search(keywords=keywords, content=content,
                                    static_files=default_global_static_files)
