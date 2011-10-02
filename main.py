@@ -211,7 +211,7 @@ def get_global_default_static_files():
         static_files = _append_static_file(static_files, filepath, file_type="js", add_newline=True)
 
     return static_files
-default_global_static_files = get_global_default_static_files()
+DEFAULT_GLOBAL_STATIC_FILES = get_global_default_static_files()
 
 class WikiIndex:
     def GET(self):
@@ -221,7 +221,7 @@ class WikiIndex:
         content = zmarkdown_utils.markdown(content, static_file_prefix)
 
         return t_render.canvas(title=title, content=content, toolbox=False,
-                               static_files = default_global_static_files)
+                               static_files = DEFAULT_GLOBAL_STATIC_FILES)
 
 
 class WikiPage:
@@ -257,7 +257,7 @@ class WikiPage:
                 return
 
             content = zmarkdown_utils.markdown(content, static_file_prefix)
-            return t_render.canvas(title=title, content=content, static_files=default_global_static_files)
+            return t_render.canvas(title=title, content=content, static_files=DEFAULT_GLOBAL_STATIC_FILES)
         elif action == "edit":
             if osp.isfile(fullpath):
                 content = zsh_util.cat(fullpath)
@@ -268,12 +268,12 @@ class WikiPage:
             else:
                 raise Exception("unknow path")
 
-            return t_render.editor(title, content, static_files=default_global_static_files)
+            return t_render.editor(title, content, static_files=DEFAULT_GLOBAL_STATIC_FILES)
         elif action == "rename":
             if not osp.exists(fullpath):
                 raise web.NotFound()
 
-            return t_render.rename(req_path, static_files=default_global_static_files)
+            return t_render.rename(req_path, static_files=DEFAULT_GLOBAL_STATIC_FILES)
         elif action == "delete":
             delete_page_file_by_fullpath(fullpath)
 
@@ -325,7 +325,7 @@ class WikiPage:
 
             if osp.exists(new_fullpath):
                 err_info = "Warning: The page foobar already exists."
-                return t_render.rename(req_path, err_info, static_files=default_global_static_files)
+                return t_render.rename(req_path, err_info, static_files=DEFAULT_GLOBAL_STATIC_FILES)
 
             parent = osp.dirname(new_fullpath)
             if not osp.exists(parent):
@@ -354,7 +354,7 @@ class SpecialWikiPage:
                 content = index()
                 content = zmarkdown_utils.markdown(content)
                 return t_render.canvas(title=req_path, content=content, toolbox=False,
-                                       static_files=default_global_static_files)
+                                       static_files=DEFAULT_GLOBAL_STATIC_FILES)
 
         raise web.NotFound()
 
@@ -375,7 +375,7 @@ class SpecialWikiPage:
                 content = "not found matched"
 
             return t_render.search(keywords=keywords, content=content,
-                                   static_files=default_global_static_files)
+                                   static_files=DEFAULT_GLOBAL_STATIC_FILES)
         else:
             raise web.NotFound()
 
