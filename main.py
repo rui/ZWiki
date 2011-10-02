@@ -107,10 +107,10 @@ def search_by_filename_and_file_content(keywords, limit=100):
     http://stackoverflow.com/questions/89228/how-to-call-external-command-in-python .
     """
 
-    find_by_filename_matched = " -o -name ".join([" '*%s*' " % i for i in keywords.split()])    
+    find_by_filename_matched = " -o -name ".join([" '*%s*' " % i for i in keywords.split()])
     find_by_content_matched = " \| ".join(keywords.split())
     is_multiple_keywords = find_by_content_matched.find("\|") != -1
-    
+
     if is_multiple_keywords:
         find_by_filename_cmd = " cd %s; "\
                                " find . \( -name %s \) | " \
@@ -120,12 +120,12 @@ def search_by_filename_and_file_content(keywords, limit=100):
         find_by_content_cmd = " cd %s; " \
                               " grep ./ --recursive --ignore-case --regexp ' \(%s\) ' | " \
                               " awk -F ':' '{print $1}' | uniq | head -n %d " % \
-                              (conf.pages_path, find_by_content_matched, limit)        
+                              (conf.pages_path, find_by_content_matched, limit)
     else:
         find_by_filename_cmd = " cd %s; " \
                                " find . -name %s | head -n %d " % \
                                (conf.pages_path, find_by_filename_matched, limit)
-        
+
         find_by_content_cmd = " cd %s; " \
                               " grep ./ --recursive --ignore-case --regexp '%s' | " \
                               " awk -F ':' '{print $1}' | uniq | head -n %d " % \
@@ -133,7 +133,7 @@ def search_by_filename_and_file_content(keywords, limit=100):
 
     # print "find_by_filename_cmd:"
     # print find_by_filename_cmd
-    
+
     # print "find_by_content_cmd:"
     # print find_by_content_cmd
 
@@ -201,17 +201,52 @@ def get_global_default_static_files():
         static_files = _append_static_file(static_files, filepath, file_type="css")
 
     filepath = osp.join("/static", "js", "prettify", "prettify.css")
-    static_files = _append_static_file(static_files, filepath, file_type="css")        
+    static_files = _append_static_file(static_files, filepath, file_type="css")
+
+
+    static_files = "%s\n" % static_files
+    
 
     js_files = ["jquery.js", "jquery-ui.js",
                 osp.join("prettify", "prettify.js"),
                 "main.js"]
     for i in js_files:
         filepath = osp.join("/static", "js", i)
-        static_files = _append_static_file(static_files, filepath, file_type="js", add_newline=True)
+        static_files = _append_static_file(static_files, filepath, file_type="js")
 
     return static_files
 DEFAULT_GLOBAL_STATIC_FILES = get_global_default_static_files()
+
+def get_the_same_folders_cssjs_files(req_path):
+    # NOTICE: this features doesn't works on file system mounted by sshfs.
+    
+    fullpath = get_page_file_or_dir_fullpath_by_req_path(req_path)
+    if osp.isfile(fullpath):
+        work_path = osp.dirname(fullpath)
+        static_file_prefix = osp.join("/static/pages", osp.dirname(req_path))
+    elif osp.isdir(fullpath):
+        work_path = fullpath
+        static_file_prefix = osp.join("/static/pages", req_path)
+
+    iters = os.listdir(work_path)
+    cssjs_files = [i for i in iters
+                   if (not i.startswith(".")) and (i.endswith(".js") or i.endswith(".css"))]
+
+    if not cssjs_files:
+        return ""
+
+    css_buf = ""
+    js_buf = ""
+    for i in cssjs_files:
+        if i.endswith(".css"):
+            filepath = osp.join(static_file_prefix, i)
+            css_buf = _append_static_file(css_buf, filepath, file_type="css")
+        elif i.endswith(".js"):
+            filepath = osp.join(static_file_prefix, i)
+            js_buf = _append_static_file(js_buf, filepath, file_type="js")
+
+    return "%s\n    %s" % (css_buf, js_buf)
+
 
 class WikiIndex:
     def GET(self):
@@ -220,8 +255,11 @@ class WikiIndex:
         content = get_recent_change_list()
         content = zmarkdown_utils.markdown(content, static_file_prefix)
 
+        static_files = DEFAULT_GLOBAL_STATIC_FILES
+        static_files = "%s\n    %s" % (static_files, get_the_same_folders_cssjs_files(req_path))        
+
         return t_render.canvas(title=title, content=content, toolbox=False,
-                               static_files = DEFAULT_GLOBAL_STATIC_FILES)
+                               static_files = static_files)
 
 
 class WikiPage:
@@ -257,7 +295,12 @@ class WikiPage:
                 return
 
             content = zmarkdown_utils.markdown(content, static_file_prefix)
-            return t_render.canvas(title=title, content=content, static_files=DEFAULT_GLOBAL_STATIC_FILES)
+            print "fullpath:", fullpath
+
+            static_files = DEFAULT_GLOBAL_STATIC_FILES
+            static_files = "%s\n    %s" % (static_files, get_the_same_folders_cssjs_files(req_path))
+
+            return t_render.canvas(title=title, content=content, static_files=static_files)
         elif action == "edit":
             if osp.isfile(fullpath):
                 content = zsh_util.cat(fullpath)
@@ -353,8 +396,12 @@ class SpecialWikiPage:
                 index = f
                 content = index()
                 content = zmarkdown_utils.markdown(content)
+                
+                static_files = DEFAULT_GLOBAL_STATIC_FILES
+                static_files = "%s\n    %s" % (static_files, get_the_same_folders_cssjs_files(req_path))
+                
                 return t_render.canvas(title=req_path, content=content, toolbox=False,
-                                       static_files=DEFAULT_GLOBAL_STATIC_FILES)
+                                       static_files=static_files)
 
         raise web.NotFound()
 
