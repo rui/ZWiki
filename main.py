@@ -25,7 +25,7 @@ app = web.application(urls, globals())
 #
 # template & session
 #
-if web.config.get('_session') == None:
+if not web.config.get('_session'):
     session = web.session.Session(app, web.session.DiskStore(conf.sessions_path), initializer={"username": None})
     web.config._session = session
 else:
