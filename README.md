@@ -55,18 +55,18 @@ Visit http://localhost:8080 .
 ## SCREENSHOTS
 
 
-auto generate table of content and highlight
+Auto generate table of content and highlight
 
 ![snapshot of ZWiki](http://s3.amazonaws.com/imgly_production/2137451/large.png "ZWiki - auto generate table of
  content and highlight")
 
 
-list page files in tree
+List page files in tree
 
 ![snapshot of ZWiki](http://s3.amazonaws.com/imgly_production/2137458/large.png "ZWiki - list page files in tree")
 
 
-simple search
+Simple search
 
 ![snapshot of ZWiki](http://s3.amazonaws.com/imgly_production/2137480/large.png "ZWiki - simple search")
 
