@@ -13,7 +13,6 @@ def cat(*args):
     buf = ""
     for i in args:
         fullpath = web.utils.safeunicode(i)
-        print "fullpath:", fullpath
         if osp.isfile(fullpath):
             f = file(fullpath)
             buf = "%s%s" % (buf, f.read())

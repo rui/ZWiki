@@ -106,21 +106,36 @@ def search_by_filename_and_file_content(keywords, limit=100):
     So we have to do use deprecated syntax ```os.popen```, for more detail, see
     http://stackoverflow.com/questions/89228/how-to-call-external-command-in-python .
     """
-    find_by_content_matched = " \| ".join(keywords.split())
-    find_by_filename_matched = " -o -name ".join([" '*%s*' " % i for i in keywords.split()])
-    if find_by_content_matched.find("\|") != -1:
-        find_by_content_cmd = " cd %s; grep ./ -r -e ' \(%s\) ' | awk -F ':' '{print $1}' | uniq | head -n %d " % \
-                              (conf.pages_path, find_by_content_matched, limit)
-        find_by_filename_cmd = " cd %s; find . \( -name %s \) | grep '.md' | head -n %d " % (conf.pages_path, find_by_filename_matched, limit)
-    else:
-        find_by_content_cmd = " cd %s; grep ./ -r -e ' %s ' | awk -F ':' '{print $1}' | uniq | head -n %d " % \
-                              (conf.pages_path, find_by_content_matched, limit)
-        find_by_filename_cmd = " cd %s; find . -name %s | grep '.md' | head -n %d " % (conf.pages_path, find_by_filename_matched, limit)
 
-#    print "find_by_content_cmd:"
-#    print find_by_content_cmd
-#    print "find_by_filename_cmd:"
-#    print find_by_filename_cmd
+    find_by_filename_matched = " -o -name ".join([" '*%s*' " % i for i in keywords.split()])    
+    find_by_content_matched = " \| ".join(keywords.split())
+    is_multiple_keywords = find_by_content_matched.find("\|") != -1
+    
+    if is_multiple_keywords:
+        find_by_filename_cmd = " cd %s; "\
+                               " find . \( -name %s \) | " \
+                               " grep '.md' | head -n %d " % \
+                               (conf.pages_path, find_by_filename_matched, limit)
+
+        find_by_content_cmd = " cd %s; " \
+                              " grep ./ --recursive --ignore-case --regexp ' \(%s\) ' | " \
+                              " awk -F ':' '{print $1}' | uniq | head -n %d " % \
+                              (conf.pages_path, find_by_content_matched, limit)        
+    else:
+        find_by_filename_cmd = " cd %s; " \
+                               " find . -name %s | head -n %d " % \
+                               (conf.pages_path, find_by_filename_matched, limit)
+        
+        find_by_content_cmd = " cd %s; " \
+                              " grep ./ --recursive --ignore-case --regexp '%s' | " \
+                              " awk -F ':' '{print $1}' | uniq | head -n %d " % \
+                              (conf.pages_path, find_by_content_matched, limit)
+
+    # print "find_by_filename_cmd:"
+    # print find_by_filename_cmd
+    
+    # print "find_by_content_cmd:"
+    # print find_by_content_cmd
 
     matched_content_lines = os.popen(find_by_content_cmd).read().strip()
     matched_content_lines = web.utils.safeunicode(matched_content_lines)
@@ -133,8 +148,8 @@ def search_by_filename_and_file_content(keywords, limit=100):
         matched_filename_lines = matched_filename_lines.split("\n")
 
     if matched_content_lines and matched_filename_lines:
-        mixed = set(matched_content_lines)
-        mixed.update(matched_filename_lines)
+        mixed = set(matched_filename_lines)
+        mixed.update(matched_content_lines)
     elif matched_content_lines and not matched_filename_lines:
         mixed = matched_content_lines
     elif not matched_content_lines  and matched_filename_lines:
@@ -143,7 +158,6 @@ def search_by_filename_and_file_content(keywords, limit=100):
         return None
 
     lines = mixed
-    print "lines:", len(lines)
     content = zmarkdown_utils.sequence_to_unorder_list(lines, strips_seq_item=".md")
 
     return content
