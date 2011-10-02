@@ -44,7 +44,7 @@ def session_hook():
 app.add_processor(web.loadhook(session_hook))
 
 
-def get_recent_change_list(limit=50):
+def get_recent_change_list(limit):
     get_rc_list_cmd = " cd %s; find . -name '*.md' | xargs ls -t | head -n %d " % \
                       (conf.pages_path, limit)
     buf = os.popen(get_rc_list_cmd).read().strip()
@@ -95,7 +95,7 @@ def get_page_file_index(limit=1000):
         content = zmarkdown_utils.sequence_to_unorder_list(lines, strips_seq_item=".md")
         return content
 
-def search_by_filename_and_file_content(keywords, limit=100):
+def search_by_filename_and_file_content(keywords, limit):
     """
     Following doesn't works if cmd contains pipe character:
 
@@ -118,7 +118,7 @@ def search_by_filename_and_file_content(keywords, limit=100):
                                (conf.pages_path, find_by_filename_matched, limit)
 
         find_by_content_cmd = " cd %s; " \
-                              " grep ./ --recursive --ignore-case --regexp ' \(%s\) ' | " \
+                              " grep ./ --recursive --ignore-case --include='*.md' --regexp ' \(%s\) ' | " \
                               " awk -F ':' '{print $1}' | uniq | head -n %d " % \
                               (conf.pages_path, find_by_content_matched, limit)
     else:
@@ -127,15 +127,15 @@ def search_by_filename_and_file_content(keywords, limit=100):
                                (conf.pages_path, find_by_filename_matched, limit)
 
         find_by_content_cmd = " cd %s; " \
-                              " grep ./ --recursive --ignore-case --regexp '%s' | " \
+                              " grep ./ --recursive --ignore-case --include='*.md' --regexp '%s' | " \
                               " awk -F ':' '{print $1}' | uniq | head -n %d " % \
                               (conf.pages_path, find_by_content_matched, limit)
 
-    # print "find_by_filename_cmd:"
-    # print find_by_filename_cmd
+#     print "find_by_filename_cmd:"
+#     print find_by_filename_cmd
 
-    # print "find_by_content_cmd:"
-    # print find_by_content_cmd
+#     print "find_by_content_cmd:"
+#     print find_by_content_cmd
 
     matched_content_lines = os.popen(find_by_content_cmd).read().strip()
     matched_content_lines = web.utils.safeunicode(matched_content_lines)
@@ -205,7 +205,7 @@ def get_global_default_static_files():
 
 
     static_files = "%s\n" % static_files
-    
+
 
     js_files = ["jquery.js", "jquery-ui.js",
                 osp.join("prettify", "prettify.js"),
@@ -219,7 +219,7 @@ DEFAULT_GLOBAL_STATIC_FILES = get_global_default_static_files()
 
 def get_the_same_folders_cssjs_files(req_path):
     # NOTICE: this features doesn't works on file system mounted by sshfs.
-    
+
     fullpath = get_page_file_or_dir_fullpath_by_req_path(req_path)
     if osp.isfile(fullpath):
         work_path = osp.dirname(fullpath)
@@ -250,13 +250,22 @@ def get_the_same_folders_cssjs_files(req_path):
 
 class WikiIndex:
     def GET(self):
+        inputs = web.input()
+        limit = inputs.get("limit")
+
         title = "Recnet Changes"
         static_file_prefix = "/static/pages"
-        content = get_recent_change_list()
+
+        if limit:
+            limit = int(limit) or conf.index_page_limit
+            content = get_recent_change_list(limit)
+        else:
+            content = get_recent_change_list(conf.index_page_limit)
+            
         content = zmarkdown_utils.markdown(content, static_file_prefix)
 
         static_files = DEFAULT_GLOBAL_STATIC_FILES
-        static_files = "%s\n    %s" % (static_files, get_the_same_folders_cssjs_files(req_path))        
+        # static_files = "%s\n    %s" % (static_files, get_the_same_folders_cssjs_files(req_path))
 
         return t_render.canvas(title=title, content=content, toolbox=False,
                                static_files = static_files)
@@ -396,10 +405,10 @@ class SpecialWikiPage:
                 index = f
                 content = index()
                 content = zmarkdown_utils.markdown(content)
-                
+
                 static_files = DEFAULT_GLOBAL_STATIC_FILES
                 static_files = "%s\n    %s" % (static_files, get_the_same_folders_cssjs_files(req_path))
-                
+
                 return t_render.canvas(title=req_path, content=content, toolbox=False,
                                        static_files=static_files)
 
@@ -411,11 +420,17 @@ class SpecialWikiPage:
 
         if f:
             keywords = inputs.get("k")
+            limit = inputs.get("limit")
 
             keywords = web.utils.safestr(keywords)
             search = f
 
-            content = search(keywords)
+            if limit:
+                limit = int(limit) or conf.search_page_limit
+                content = search(keywords, limit)
+            else:
+                content = search(keywords, conf.search_page_limit)
+                
             if content:
                 content = zmarkdown_utils.markdown(content)
             else:
