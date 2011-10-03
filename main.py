@@ -209,7 +209,8 @@ def get_global_default_static_files():
 
     js_files = ["jquery.js", "jquery-ui.js",
                 osp.join("prettify", "prettify.js"),
-                "main.js"]
+                "main.js",
+                "Markdown.Converter.js", "Markdown.Sanitizer.js", "Markdown.Editor.js"]
     for i in js_files:
         filepath = osp.join("/static", "js", i)
         static_files = _append_static_file(static_files, filepath, file_type="js")
@@ -320,7 +321,13 @@ class WikiPage:
             else:
                 raise Exception("unknow path")
 
-            return t_render.editor(title, content, static_files=DEFAULT_GLOBAL_STATIC_FILES)
+            static_files = DEFAULT_GLOBAL_STATIC_FILES
+            filepath = osp.join("/static", "css", "pagedown.css")
+            static_files = _append_static_file(static_files, filepath, file_type="css", add_newline=True)                        
+            filepath = osp.join("/static", "js", "editor.js")
+            static_files = _append_static_file(static_files, filepath, file_type="js", add_newline=True)
+
+            return t_render.editor(title, content, static_files=static_files)
         elif action == "rename":
             if not osp.exists(fullpath):
                 raise web.NotFound()
@@ -451,5 +458,5 @@ if __name__ == "__main__":
     if not osp.exists(conf.pages_path):
         os.mkdir(conf.pages_path)
 
-#	web.wsgi.runwsgi = lambda func, addr=None: web.wsgi.runfcgi(func, addr)
+	# web.wsgi.runwsgi = lambda func, addr=None: web.wsgi.runfcgi(func, addr)
     app.run()
