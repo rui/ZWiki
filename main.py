@@ -113,7 +113,7 @@ def search_by_filename_and_file_content(keywords, limit):
 
     if is_multiple_keywords:
         find_by_filename_cmd = " cd %s; "\
-                               " find . \( -name %s \) | " \
+                               " find . \( -name %s \) -type f | " \
                                " grep '.md' | head -n %d " % \
                                (conf.pages_path, find_by_filename_matched, limit)
 
@@ -123,7 +123,7 @@ def search_by_filename_and_file_content(keywords, limit):
                               (conf.pages_path, find_by_content_matched, limit)
     else:
         find_by_filename_cmd = " cd %s; " \
-                               " find . -name %s | head -n %d " % \
+                               " find . -name %s -type f | head -n %d " % \
                                (conf.pages_path, find_by_filename_matched, limit)
 
         find_by_content_cmd = " cd %s; " \
@@ -131,11 +131,11 @@ def search_by_filename_and_file_content(keywords, limit):
                               " awk -F ':' '{print $1}' | uniq | head -n %d " % \
                               (conf.pages_path, find_by_content_matched, limit)
 
-#     print "find_by_filename_cmd:"
-#     print find_by_filename_cmd
+    # print "find_by_filename_cmd:"
+    # print find_by_filename_cmd
 
-#     print "find_by_content_cmd:"
-#     print find_by_content_cmd
+    # print "find_by_content_cmd:"
+    # print find_by_content_cmd
 
     matched_content_lines = os.popen(find_by_content_cmd).read().strip()
     matched_content_lines = web.utils.safeunicode(matched_content_lines)
@@ -148,8 +148,10 @@ def search_by_filename_and_file_content(keywords, limit):
         matched_filename_lines = matched_filename_lines.split("\n")
 
     if matched_content_lines and matched_filename_lines:
-        mixed = set(matched_filename_lines)
-        mixed.update(matched_content_lines)
+        # NOTICE: build-in function set doen't keep order, we shouldn't use it.
+        # mixed = set(matched_filename_lines)
+        # mixed.update(set(matched_content_lines))
+        mixed = web.utils.uniq(matched_filename_lines + matched_content_lines)
     elif matched_content_lines and not matched_filename_lines:
         mixed = matched_content_lines
     elif not matched_content_lines  and matched_filename_lines:
@@ -305,7 +307,6 @@ class WikiPage:
                 return
 
             content = zmarkdown_utils.markdown(content, static_file_prefix)
-            print "fullpath:", fullpath
 
             static_files = DEFAULT_GLOBAL_STATIC_FILES
             static_files = "%s\n    %s" % (static_files, get_the_same_folders_cssjs_files(req_path))
