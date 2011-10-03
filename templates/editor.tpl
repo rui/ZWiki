@@ -33,7 +33,10 @@ $def with (title, content, static_files=None)
             <input type="submit" value="Update" />
         </div>
 
-        <p><a href="http://daringfireball.net/projects/markdown/syntax">Markdown Syntax</a></p>
+        <p>
+            <a href="http://daringfireball.net/projects/markdown/syntax" target="_blank">Markdown Syntax</a>, 
+            <a href="http://daringfireball.net/projects/markdown/dingus" target="_blank">Markdown Dingus</a>
+        </p>
     </form>
 </div>
 
