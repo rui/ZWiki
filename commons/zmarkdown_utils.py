@@ -142,7 +142,10 @@ def sequence_to_unorder_list(lines, strips_seq_item=None):
 
 def markdown(text, work_fullpath = None, static_file_prefix = None):
     if work_fullpath:
-        text = convert_latex_code(text, save_to_prefix=work_fullpath)
+        try:
+            text = convert_latex_code(text, save_to_prefix=work_fullpath)
+        except:
+            print "it seems that latex or dvipng doesn't works well on your box"
 
     if static_file_prefix:
         text = convert_static_file_url(text, static_file_prefix)
