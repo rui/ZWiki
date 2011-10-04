@@ -57,6 +57,8 @@ def get_recent_change_list(limit):
 def get_page_file_or_dir_fullpath_by_req_path(req_path):
     if not req_path.endswith("/"):
         return "%s.md" % osp.join(conf.pages_path, req_path)
+    elif req_path == "/":
+        return conf.pages_path
     else:
         return osp.join(conf.pages_path, req_path)
 
@@ -258,14 +260,18 @@ class WikiIndex:
 
         title = "Recnet Changes"
         static_file_prefix = "/static/pages"
+        req_path = "/"        
 
         if limit:
             limit = int(limit) or conf.index_page_limit
             content = get_recent_change_list(limit)
         else:
             content = get_recent_change_list(conf.index_page_limit)
-            
-        content = zmarkdown_utils.markdown(content, static_file_prefix)
+
+        fullpath = get_page_file_or_dir_fullpath_by_req_path(req_path)
+        content = zmarkdown_utils.markdown(text=content,
+                                           work_fullpath=fullpath,
+                                           static_file_prefix=static_file_prefix)
 
         static_files = DEFAULT_GLOBAL_STATIC_FILES
         # static_files = "%s\n    %s" % (static_files, get_the_same_folders_cssjs_files(req_path))
@@ -286,11 +292,16 @@ class WikiPage:
         fullpath = get_page_file_or_dir_fullpath_by_req_path(req_path)
         title = req_path
 
+        if osp.isfile(fullpath):
+            work_fullpath = osp.dirname(fullpath)
+            static_file_prefix = osp.join("/static/pages", osp.dirname(req_path))
+        elif osp.isdir(fullpath):
+            work_fullpath = fullpath
+            static_file_prefix = osp.join("/static/pages", req_path)            
+
         if action == "read":
             if osp.isfile(fullpath):
                 content = zsh_util.cat(fullpath)
-
-                static_file_prefix = osp.join("/static/pages", osp.dirname(req_path))
             elif osp.isdir(fullpath):
                 dot_idx_content = get_dot_idx_content_by_fullpath(fullpath)
                 page_file_list_content = get_page_file_list_content_by_fullpath(fullpath)
@@ -300,13 +311,13 @@ class WikiPage:
                     content = dot_idx_content
                 if page_file_list_content:
                     content = "%s\n\n----\n%s" % (content, page_file_list_content)
-
-                static_file_prefix = osp.join("/static/pages", req_path)
             else:
                 web.seeother("/%s?action=edit" % req_path)
                 return
-
-            content = zmarkdown_utils.markdown(content, static_file_prefix)
+            
+            content = zmarkdown_utils.markdown(text=content,
+                                               work_fullpath=work_fullpath,
+                                               static_file_prefix=static_file_prefix)
 
             static_files = DEFAULT_GLOBAL_STATIC_FILES
             static_files = "%s\n    %s" % (static_files, get_the_same_folders_cssjs_files(req_path))
@@ -459,5 +470,5 @@ if __name__ == "__main__":
     if not osp.exists(conf.pages_path):
         os.mkdir(conf.pages_path)
 
-	# web.wsgi.runwsgi = lambda func, addr=None: web.wsgi.runfcgi(func, addr)
+    # web.wsgi.runwsgi = lambda func, addr=None: web.wsgi.runfcgi(func, addr)
     app.run()
