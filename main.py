@@ -232,6 +232,8 @@ def get_the_same_folders_cssjs_files(req_path):
     elif osp.isdir(fullpath):
         work_path = fullpath
         static_file_prefix = osp.join("/static/pages", req_path)
+    else:
+        work_path = conf.pages_path
 
     iters = os.listdir(work_path)
     cssjs_files = [i for i in iters
