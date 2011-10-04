@@ -26,10 +26,11 @@ Visit http://localhost:8080 .
 - run up without database, CRUD page file
 - support [Markdown](http://daringfireball.net/projects/markdown/) syntax
 - auto include static image file
-- auto generate table of content for long text
+- auto generate table of content
 - list all page files (implement in GNU findutils)
 - list recent changed page files (implement in GNU findutils)
 - search by file name and file content (implment in GNU findutils and GNU grep)
+- support simple LaTeX
 
 ## RUNTIME REQUIREMENTS
 
