@@ -31,6 +31,7 @@ Visit http://localhost:8080 .
 - list recent changed page files (implement in GNU findutils)
 - search by file name and file content (implment in GNU findutils and GNU grep)
 - support simple LaTeX
+- support button mode path
 
 ## RUNTIME REQUIREMENTS
 
