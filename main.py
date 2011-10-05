@@ -278,7 +278,7 @@ class WikiIndex:
         static_files = DEFAULT_GLOBAL_STATIC_FILES
         # static_files = "%s\n    %s" % (static_files, get_the_same_folders_cssjs_files(req_path))
 
-        return t_render.canvas(title=title, content=content, toolbox=False,
+        return t_render.canvas(req_path=req_path, title=title, content=content, toolbox=False,
                                static_files = static_files)
 
 
@@ -292,7 +292,12 @@ class WikiPage:
             raise web.BadRequest()
 
         fullpath = get_page_file_or_dir_fullpath_by_req_path(req_path)
-        title = req_path
+
+        if conf.use_button_mode_path:
+            buf = zmarkdown_utils.convert_text_path_to_button_path("/%s" % req_path)
+            title = zmarkdown_utils.markdown(buf)
+        else:
+            title = req_path
 
         if osp.isfile(fullpath):
             work_fullpath = osp.dirname(fullpath)
@@ -324,7 +329,7 @@ class WikiPage:
             static_files = DEFAULT_GLOBAL_STATIC_FILES
             static_files = "%s\n    %s" % (static_files, get_the_same_folders_cssjs_files(req_path))
 
-            return t_render.canvas(title=title, content=content, static_files=static_files)
+            return t_render.canvas(req_path=req_path, title=title, content=content, static_files=static_files)
         elif action == "edit":
             if osp.isfile(fullpath):
                 content = zsh_util.cat(fullpath)
@@ -430,7 +435,9 @@ class SpecialWikiPage:
                 static_files = DEFAULT_GLOBAL_STATIC_FILES
                 static_files = "%s\n    %s" % (static_files, get_the_same_folders_cssjs_files(req_path))
 
-                return t_render.canvas(title=req_path, content=content, toolbox=False,
+                req_path = "~index"
+                title = "index"
+                return t_render.canvas(req_path=req_path, title=title, content=content, toolbox=False,
                                        static_files=static_files)
 
         raise web.NotFound()

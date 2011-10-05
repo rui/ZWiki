@@ -11,10 +11,14 @@ import re
 import web
 from markdown import markdown as _markdown
 from zlatex import latex2png
+from zpath import convert_path_to_hierarchy
 
 osp = os.path
 
-__all__ = ["convert_static_file_url", "sequence_to_unorder_list",
+__all__ = ["convert_static_file_url",
+           "convert_path_to_hierarchy",
+           "convert_text_path_to_button_path",
+           "sequence_to_unorder_list",
            "trac_wiki_code_block_to_markdown_code",
            "convert_latex_code",
            "markdown"]
@@ -119,6 +123,11 @@ def convert_static_file_url(text, static_file_prefix):
     text = _fix_img_url(text, static_file_prefix)
     text = _fix_img_url_with_option(text, static_file_prefix)
     return text
+
+def convert_text_path_to_button_path(path):
+    buf = convert_path_to_hierarchy(path)
+    button_path = " / ".join(["[%s](%s)" % (i[0], i[1]) for i in buf])
+    return "/ %s" % button_path
 
 def sequence_to_unorder_list(lines, strips_seq_item=None):
     """

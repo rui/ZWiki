@@ -1,4 +1,4 @@
-$def with (title, content, static_files=None, toolbox=True, quicklinks=True)
+$def with (req_path, title, content, static_files=None, toolbox=True, quicklinks=True)
 <!DOCTYPE html>
 <html>
 <head>
@@ -35,9 +35,9 @@ $if quicklinks:
 
 $if toolbox:
     <div id="toolbox">
-        <a href="/$title?action=delete">Delete</a>
-        <a href="/$title?action=rename">Rename</a>
-        <a href="/$title?action=edit">Edit</a>
+        <a href="/$req_path?action=delete">Delete</a>
+        <a href="/$req_path?action=rename">Rename</a>
+        <a href="/$req_path?action=edit">Edit</a>
     </div>
 
 
