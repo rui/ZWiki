@@ -75,5 +75,5 @@ Simple search
 
 Button-mode path
 
-![snapshot of ZWiki](http://web24.twitpic.com/img/415439813-2f3ea335ba45f5a41c9e13c0dd5515be.4e8bd640-full.png "ZWiki - button-mode path")
+![snapshot of ZWiki](http://s3.amazonaws.com/twitpic/photos/full/415439813.png?AWSAccessKeyId=AKIAJF3XCCKACR3QDMOA&Expires=1317796035&Signature=XppMHQIjCMPYvuEIMrLGoGWGxOQ%3D "ZWiki - button-mode path")
 
