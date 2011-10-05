@@ -73,4 +73,7 @@ Simple search
 ![snapshot of ZWiki](http://s3.amazonaws.com/imgly_production/2137480/large.png "ZWiki - simple search")
 
 
+Button-mode path
+
+![snapshot of ZWiki](http://web24.twitpic.com/img/415439813-2f3ea335ba45f5a41c9e13c0dd5515be.4e8bd640-full.png "ZWiki - button-mode path")
 
