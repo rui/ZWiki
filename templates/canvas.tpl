@@ -3,7 +3,7 @@ $def with (req_path, title, content, static_files=None, toolbox=True, quicklinks
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>$title</title>
+    <title>$req_path</title>
 
     $if static_files:
         $static_files
